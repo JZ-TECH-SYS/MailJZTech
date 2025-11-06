@@ -239,6 +239,15 @@ class EmailController extends ctrl
     }
 
     /**
+     * Renderiza a página de histórico de e-mails
+     * GET /emails
+     */
+    public function index()
+    {
+        $this->render('emails');
+    }
+
+    /**
      * Valida a chave de API e retorna o sistema
      */
     private function validarApiKey()

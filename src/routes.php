@@ -32,9 +32,20 @@ $router->get('/verificar-2fa', 'LoginController@paginaVerificar2FA', true);
 $router->get('/dashboard', 'DashboardController@index', true);
 
 // ==========================================
+// DASHBOARD (API - GET)
+// ==========================================
+$router->get('/api/dashboard/stats', 'DashboardController@obterEstatisticas', true);
+
+// ==========================================
 // LOGS (Views - GET)
 // ==========================================
 $router->get('/logs', 'LogsController@index', true);
+
+// ==========================================
+// LOGS (API - GET)
+// ==========================================
+$router->get('/api/logs/listar', 'LogsController@listarLogs', true);
+$router->get('/api/logs/filtrar', 'LogsController@filtrarLogs', true);
 
 // ==========================================
 // DOCUMENTAÇÃO (Views - GET)

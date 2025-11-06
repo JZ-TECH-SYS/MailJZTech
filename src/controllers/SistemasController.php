@@ -240,6 +240,37 @@ class SistemasController extends ctrl
     }
 
     /**
+     * Renderiza a página de listagem de sistemas
+     * GET /sistemas
+     */
+    public function index()
+    {
+        $this->render('sistemas');
+    }
+
+    /**
+     * Renderiza a página de criação de sistema
+     * GET /criar-sistema
+     */
+    public function paginaCriar()
+    {
+        $this->render('criar_sistema');
+    }
+
+    /**
+     * Renderiza a página de edição de sistema
+     * GET /editar-sistema/{idsistema}
+     */
+    public function paginaEditar()
+    {
+        $idsistema = $_GET['idsistema'] ?? null;
+        if (!$idsistema) {
+            $this->redirect('/sistemas');
+        }
+        $this->render('editar_sistema');
+    }
+
+    /**
      * Valida a autenticação do usuário
      * Por enquanto, apenas verifica se há uma sessão ativa
      * Você pode implementar validação mais robusta aqui
