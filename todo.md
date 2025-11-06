@@ -20,6 +20,12 @@
 - [ ] Criar página de histórico de e-mails
 - [ ] Implementar filtros e paginação
 
+## Repositório Git
+- [x] Inicializar repositório Git
+- [x] Criar .gitignore
+- [x] Fazer commit inicial da API
+- [x] Criar SETUP.md com instruções
+
 ## Testes
 - [ ] Testar envio de e-mail simples
 - [ ] Testar envio com anexos
