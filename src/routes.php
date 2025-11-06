@@ -6,11 +6,14 @@ $router = new Router();
 // MailJZTech - Rotas da API de E-mail
 // ==========================================
 
-// Rota principal
-$router->get('/', 'HomeController@index');
+// ==========================================
+// AUTENTICAÇÃO (Views - GET)
+// ==========================================
+$router->get('/', 'LoginController@index');
+$router->get('/login', 'LoginController@index');
 
 // ==========================================
-// AUTENTICAÇÃO (Login, Logout, 2FA)
+// AUTENTICAÇÃO (API - POST)
 // ==========================================
 $router->post('/login', 'LoginController@verificarLogin');
 $router->post('/confirmar-2fa', 'LoginController@confirmarDoisFatores');
@@ -18,90 +21,57 @@ $router->get('/sair', 'LoginController@logout', true);
 $router->get('/validaToken', 'LoginController@validaToken');
 
 // ==========================================
-// API DE ENVIO DE E-MAILS
+// CONFIGURAÇÃO DE 2FA (Views - GET)
 // ==========================================
-
-// Enviar e-mail
-$router->post('/sendEmail', 'EmailController@sendEmail');
-
-// Listar e-mails enviados
-$router->get('/listarEmails', 'EmailController@listarEmails');
-
-// Detalhes de um e-mail específico
-$router->get('/detalheEmail/{idemail}', 'EmailController@detalheEmail');
-
-// Estatísticas de envios
-$router->get('/statsEmails', 'EmailController@statsEmails');
-
-// Testar configuração de e-mail
-$router->post('/testarEmail', 'EmailController@testarEmail');
-
-// Validar configuração de e-mail
-$router->get('/validarConfigEmail', 'EmailController@validarConfigEmail');
+$router->get('/configurar-2fa', 'LoginController@paginaConfigurar2FA', true);
+$router->get('/verificar-2fa', 'LoginController@paginaVerificar2FA', true);
 
 // ==========================================
-// GERENCIAMENTO DE SISTEMAS/CLIENTES
+// DASHBOARD (Views - GET)
 // ==========================================
-
-// Listar todos os sistemas
-$router->get('/listarSistemas', 'SistemasController@listarSistemas', true);
-
-// Obter detalhes de um sistema
-$router->get('/obterSistema/{idsistema}', 'SistemasController@obterSistema', true);
-
-// Criar novo sistema
-$router->post('/criarSistema', 'SistemasController@criarSistema', true);
-
-// Atualizar sistema
-$router->put('/atualizarSistema/{idsistema}', 'SistemasController@atualizarSistema', true);
-
-// Deletar sistema
-$router->delete('/deletarSistema/{idsistema}', 'SistemasController@deletarSistema', true);
-
-// Regenerar chave de API
-$router->post('/regenerarChaveApi/{idsistema}', 'SistemasController@regenerarChaveApi', true);
-
-// ==========================================
-// DASHBOARD E LOGS
-// ==========================================
-
-// Dashboard (página principal)
 $router->get('/dashboard', 'DashboardController@index', true);
 
-// Listar logs
-$router->get('/logs', 'LogsController@listar', true);
-
-// Detalhes de um log
-$router->get('/logs/{idlog}', 'LogsController@detalhe', true);
+// ==========================================
+// LOGS (Views - GET)
+// ==========================================
+$router->get('/logs', 'LogsController@index', true);
 
 // ==========================================
-// DOCUMENTAÇÃO
+// DOCUMENTAÇÃO (Views - GET)
 // ==========================================
-
-// Página de documentação da API
 $router->get('/documentacao', 'DocumentacaoController@index', true);
 
 // ==========================================
-// PÁGINAS DO SISTEMA
+// SISTEMAS (Views - GET)
 // ==========================================
-
-// Página de sistemas (CRUD)
-$router->get('/sistemas', 'SistemasController@pagina', true);
-
-// Página de criar sistema
+$router->get('/sistemas', 'SistemasController@index', true);
 $router->get('/criar-sistema', 'SistemasController@paginaCriar', true);
-
-// Página de editar sistema
 $router->get('/editar-sistema/{idsistema}', 'SistemasController@paginaEditar', true);
 
-// Página de histórico de e-mails
-$router->get('/emails', 'EmailController@pagina', true);
+// ==========================================
+// SISTEMAS (API - POST/PUT/DELETE)
+// ==========================================
+$router->post('/criarSistema', 'SistemasController@criarSistema', true);
+$router->put('/atualizarSistema/{idsistema}', 'SistemasController@atualizarSistema', true);
+$router->delete('/deletarSistema/{idsistema}', 'SistemasController@deletarSistema', true);
+$router->get('/listarSistemas', 'SistemasController@listarSistemas', true);
+$router->get('/obterSistema/{idsistema}', 'SistemasController@obterSistema', true);
+$router->post('/regenerarChaveApi/{idsistema}', 'SistemasController@regenerarChaveApi', true);
 
-// Página de configuração de 2FA
-$router->get('/configurar-2fa', 'LoginController@paginaConfigurar2FA', true);
+// ==========================================
+// E-MAILS (Views - GET)
+// ==========================================
+$router->get('/emails', 'EmailController@index', true);
 
-// Página de verificação de 2FA
-$router->get('/verificar-2fa', 'LoginController@paginaVerificar2FA', true);
+// ==========================================
+// E-MAILS (API - POST/GET)
+// ==========================================
+$router->post('/sendEmail', 'EmailController@sendEmail');
+$router->get('/listarEmails', 'EmailController@listarEmails', true);
+$router->get('/detalheEmail/{idemail}', 'EmailController@detalheEmail', true);
+$router->get('/statsEmails', 'EmailController@statsEmails', true);
+$router->post('/testarEmail', 'EmailController@testarEmail', true);
+$router->get('/validarConfigEmail', 'EmailController@validarConfigEmail');
 
 // ==========================================
 // FIM DAS ROTAS
