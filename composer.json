@@ -1,0 +1,18 @@
+{
+    "require": {
+        "clancats/hydrahon": "^1.1",
+        "mpdf/mpdf": "^8.1",
+        "endroid/qr-code": "^5.0",
+        "phpmailer/phpmailer": "^6.9",
+        "nfephp-org/sped-nfe": "dev-master as 5.2.0",
+        "guzzlehttp/guzzle": "^7.8",
+        "ext-soap": "*",
+        "nfephp-org/sped-da": "1.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "core\\": "core/",
+            "src\\": "src/"
+        }
+    }
+}
