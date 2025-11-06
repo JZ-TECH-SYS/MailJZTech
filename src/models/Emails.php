@@ -4,7 +4,6 @@ namespace src\models;
 
 use core\Model;
 use core\Database;
-use PDO;
 
 /**
  * Classe modelo para a tabela 'emails_enviados' do banco de dados.
@@ -109,58 +108,23 @@ class Emails extends Model
     }
 
     /**
-     * Obtém estatísticas de e-mails de um sistema
-     * Usa SQL puro por ser uma query complexa com agregações
+     * Obtém estatísticas de e-mails de um sistema (QueryBuilder)
      *
      * @param int $idsistema ID do sistema
      * @return array|false Retorna as estatísticas
      */
     public function obterEstatisticas($idsistema)
     {
-        $db = Database::getInstance();
-        $sql = "SELECT 
-                    COUNT(*) as total,
-                    SUM(CASE WHEN status = 'enviado' THEN 1 ELSE 0 END) as enviados,
-                    SUM(CASE WHEN status = 'erro' THEN 1 ELSE 0 END) as erros,
-                    SUM(CASE WHEN status = 'pendente' THEN 1 ELSE 0 END) as pendentes
-                FROM emails_enviados 
-                WHERE idsistema = :idsistema";
+        $result = self::selectRaw([
+            'COUNT(*) as total',
+            'SUM(CASE WHEN status = "enviado" THEN 1 ELSE 0 END) as enviados',
+            'SUM(CASE WHEN status = "erro" THEN 1 ELSE 0 END) as erros',
+            'SUM(CASE WHEN status = "pendente" THEN 1 ELSE 0 END) as pendentes'
+        ])
+            ->where('idsistema', $idsistema)
+            ->one();
         
-        $stmt = $db->prepare($sql);
-        $stmt->bindValue(':idsistema', $idsistema);
-        $stmt->execute();
-        
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    /**
-     * Obtém e-mails por período (para gráficos)
-     * Usa SQL puro por ser uma query complexa com agregações
-     *
-     * @param int $idsistema ID do sistema
-     * @param int $dias Número de dias a retornar
-     * @return array Retorna um array com os dados por dia
-     */
-    public function obterPorPeriodo($idsistema, $dias = 30)
-    {
-        $db = Database::getInstance();
-        $sql = "SELECT 
-                    DATE(data_criacao) as data,
-                    COUNT(*) as total,
-                    SUM(CASE WHEN status = 'enviado' THEN 1 ELSE 0 END) as enviados,
-                    SUM(CASE WHEN status = 'erro' THEN 1 ELSE 0 END) as erros
-                FROM emails_enviados 
-                WHERE idsistema = :idsistema 
-                AND data_criacao >= DATE_SUB(NOW(), INTERVAL :dias DAY)
-                GROUP BY DATE(data_criacao)
-                ORDER BY data DESC";
-        
-        $stmt = $db->prepare($sql);
-        $stmt->bindValue(':idsistema', $idsistema, PDO::PARAM_INT);
-        $stmt->bindValue(':dias', $dias, PDO::PARAM_INT);
-        $stmt->execute();
-        
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $result ?: false;
     }
 
     /**

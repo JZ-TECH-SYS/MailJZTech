@@ -4,7 +4,6 @@ namespace src\models;
 
 use core\Model;
 use core\Database;
-use PDO;
 
 /**
  * Classe modelo para a tabela 'emails_logs' do banco de dados.
@@ -72,30 +71,20 @@ class EmailLogs extends Model
 
     /**
      * Obtém logs recentes com informações de e-mail e sistema
-     * Usa SQL puro por ser uma query com joins
+     * Usa SQL puro via switchParams() por ter JOINs
      *
      * @param int $limite Limite de registros
      * @return array Retorna um array com os logs recentes
      */
     public function obterRecentes($limite = 100)
     {
-        $db = Database::getInstance();
-        $sql = "SELECT 
-                    el.*,
-                    e.destinatario,
-                    e.assunto,
-                    s.nome as sistema
-                FROM emails_logs el
-                LEFT JOIN emails_enviados e ON el.idemail = e.idemail
-                LEFT JOIN sistemas s ON el.idsistema = s.idsistema
-                ORDER BY el.data_log DESC
-                LIMIT :limite";
+        $params = [
+            'limite' => $limite
+        ];
         
-        $stmt = $db->prepare($sql);
-        $stmt->bindValue(':limite', $limite, PDO::PARAM_INT);
-        $stmt->execute();
+        $resultado = Database::switchParams($params, 'logs_obter_recentes', true);
         
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $resultado['retorno'] ?? [];
     }
 
     /**
@@ -116,6 +105,7 @@ class EmailLogs extends Model
 
     /**
      * Obtém logs por período
+     * Usa SQL puro via switchParams() por ter filtro de data complexo
      *
      * @param int $idsistema ID do sistema
      * @param string $data_inicio Data inicial (Y-m-d)
@@ -124,35 +114,32 @@ class EmailLogs extends Model
      */
     public function obterPorPeriodo($idsistema, $data_inicio, $data_fim)
     {
-        $db = Database::getInstance();
-        $sql = "SELECT * FROM emails_logs 
-                WHERE idsistema = :idsistema 
-                AND DATE(data_log) BETWEEN :data_inicio AND :data_fim
-                ORDER BY data_log DESC";
+        $params = [
+            'idsistema' => $idsistema,
+            'data_inicio' => "'" . $data_inicio . "'",
+            'data_fim' => "'" . $data_fim . "'"
+        ];
         
-        $stmt = $db->prepare($sql);
-        $stmt->bindValue(':idsistema', $idsistema, PDO::PARAM_INT);
-        $stmt->bindValue(':data_inicio', $data_inicio);
-        $stmt->bindValue(':data_fim', $data_fim);
-        $stmt->execute();
+        $resultado = Database::switchParams($params, 'logs_obter_por_periodo', true);
         
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $resultado['retorno'] ?? [];
     }
 
     /**
      * Limpa logs antigos (mais de X dias)
+     * Usa SQL puro via switchParams()
      *
      * @param int $dias Número de dias a manter
      * @return bool Retorna true se deletado com sucesso
      */
     public function limparAntigos($dias = 90)
     {
-        $db = Database::getInstance();
-        $sql = "DELETE FROM emails_logs WHERE data_log < DATE_SUB(NOW(), INTERVAL :dias DAY)";
+        $params = [
+            'dias' => $dias
+        ];
         
-        $stmt = $db->prepare($sql);
-        $stmt->bindValue(':dias', $dias, PDO::PARAM_INT);
+        $resultado = Database::switchParams($params, 'logs_limpar_antigos', true);
         
-        return $stmt->execute();
+        return !empty($resultado['retorno']);
     }
 }
