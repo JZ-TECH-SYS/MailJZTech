@@ -1,0 +1,36 @@
+﻿version: '3.8'
+
+# ✅ MESMO "api" - aparece na mesma pasta
+name: api
+
+services:
+  mailjztech:
+    image: api_mvc:latest
+    container_name: mailjztech_api  # ✅ Nome diferente!
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "8050:80"  # ✅ Porta diferente!
+    environment:
+      DB_HOST: mysql_shared  # ✅ Usa nome do container ao invés de host.docker.internal
+      DB_PORT: 3306  # ✅ Porta interna do MySQL (não 3307!)
+      DB_DATABASE: mailjztech  # ✅ Database diferente!
+      DB_USER: root
+      DB_PASS: root
+    networks:
+      - shared_network  # ✅ Conecta na rede do MySQL
+    command: >
+      sh -c "
+        if [ ! -d 'vendor' ]; then
+          echo '📦 Instalando dependências Composer...';
+          composer install --no-interaction --optimize-autoloader;
+        fi &&
+        echo '✅ MailJZTech API rodando em http://localhost:8050' &&
+        apache2-foreground
+      "
+    restart: unless-stopped
+
+# ✅ Define a rede externa (criada pelo docker-infra)
+networks:
+  shared_network:
+    external: true
