@@ -25,14 +25,4 @@ class Config
 
     const ERROR_CONTROLLER = 'ErrorController';
     const DEFAULT_ACTION = 'index';
-
-    const API_MYZAP = API_MYZAP;
-    const API_MYZAP_DEV = API_MYZAP_DEV;
-    const API_MYZAP_TOKEN = API_MYZAP_TOKEN;
-
-    const SEFAZ = SEFAZ;
-    
-    // Address Service Configuration
-    const GOOGLE_MAPS_API_KEY = GOOGLE_MAPS_API_KEY;
-    const USE_GOOGLE_MAPS = USE_GOOGLE_MAPS;
 }
