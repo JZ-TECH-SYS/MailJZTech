@@ -20,7 +20,7 @@ class Sistemas extends Model
      */
     public function getAll()
     {
-        return self::select(['*'])
+        return self::select()
             ->where('status', 'ativo')
             ->orderBy('data_criacao', 'DESC')
             ->get();
@@ -34,7 +34,7 @@ class Sistemas extends Model
      */
     public function getById($idsistema)
     {
-        return self::select(['*'])
+        return self::select()
             ->where('idsistema', $idsistema)
             ->where('status', 'ativo')
             ->one();
@@ -48,7 +48,7 @@ class Sistemas extends Model
      */
     public function getByApiKey($chaveApi)
     {
-        return self::select(['*'])
+        return self::select()
             ->where('chave_api', $chaveApi)
             ->where('status', 'ativo')
             ->one();
@@ -62,7 +62,7 @@ class Sistemas extends Model
      */
     public function getByUsuario($idusuario)
     {
-        return self::select(['*'])
+        return self::select()
             ->where('idusuario', $idusuario)
             ->where('status', 'ativo')
             ->orderBy('data_criacao', 'DESC')

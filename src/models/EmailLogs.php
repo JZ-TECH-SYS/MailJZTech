@@ -47,7 +47,7 @@ class EmailLogs extends Model
      */
     public function obterPorEmail($idemail)
     {
-        return self::select(['*'])
+        return self::select()
             ->where('idemail', $idemail)
             ->orderBy('data_log', 'ASC')
             ->get();
@@ -62,7 +62,7 @@ class EmailLogs extends Model
      */
     public function obterPorSistema($idsistema, $limite = 100)
     {
-        return self::select(['*'])
+        return self::select()
             ->where('idsistema', $idsistema)
             ->orderBy('data_log', 'DESC')
             ->limit($limite)
@@ -96,7 +96,7 @@ class EmailLogs extends Model
      */
     public function obterPorTipo($tipo_log, $limite = 100)
     {
-        return self::select(['*'])
+        return self::select()
             ->where('tipo_log', $tipo_log)
             ->orderBy('data_log', 'DESC')
             ->limit($limite)

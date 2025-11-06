@@ -24,7 +24,7 @@ class Emails extends Model
      */
     public function getBySystem($idsistema, $limite = 50, $offset = 0)
     {
-        return self::select(['*'])
+        return self::select()
             ->where('idsistema', $idsistema)
             ->orderBy('data_criacao', 'DESC')
             ->limit($limite)
@@ -40,7 +40,7 @@ class Emails extends Model
      */
     public function getById($idemail)
     {
-        return self::select(['*'])
+        return self::select()
             ->where('idemail', $idemail)
             ->one();
     }

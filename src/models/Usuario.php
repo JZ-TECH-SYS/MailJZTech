@@ -23,7 +23,7 @@ class Usuario extends Model
      */
     public function getUserToken($token)
     {
-        return self::select(['*'])
+        return self::select()
             ->where('token', $token)
             ->where('status', 'ativo')
             ->one();
@@ -37,7 +37,7 @@ class Usuario extends Model
      */
     public function getUserName($nome)
     {
-        return self::select(['*'])
+        return self::select()
             ->where('nome', $nome)
             ->where('status', 'ativo')
             ->one();
@@ -51,7 +51,7 @@ class Usuario extends Model
      */
     public function getUserEmail($email)
     {
-        return self::select(['*'])
+        return self::select()
             ->where('email', $email)
             ->where('status', 'ativo')
             ->one();
@@ -122,7 +122,7 @@ class Usuario extends Model
      */
     public function getById($idusuario)
     {
-        return self::select(['*'])
+        return self::select()
             ->where('idusuario', $idusuario)
             ->one();
     }
@@ -134,7 +134,7 @@ class Usuario extends Model
      */
     public function listar()
     {
-        return self::select(['*'])
+        return self::select()
             ->where('status', 'ativo')
             ->get();
     }
