@@ -2,8 +2,6 @@
 
 namespace core;
 
-header('Content-Type: application/json');
-
 use Exception;
 use \src\Config;
 
@@ -115,8 +113,9 @@ class Controller
      *   error: [msg de erro] || false
      * ]
      */
-    public static function response($item, $status)
+    public static function response($item, $status = 200)
     {
+        header('Content-Type: application/json');
         http_response_code($status);
         echo json_encode([
             'result' => $item,
@@ -131,6 +130,7 @@ class Controller
      */
     public static function rejectResponse($msg)
     {
+        header('Content-Type: application/json');
         http_response_code(400);
         echo json_encode([
             'result' => '',

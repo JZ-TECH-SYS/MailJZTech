@@ -22,7 +22,7 @@ class Emails extends Model
      * @param int $offset Offset para paginação
      * @return array Retorna um array com os e-mails
      */
-    public function getBySystem($idsistema, $limite = 50, $offset = 0)
+    public static function getBySystem($idsistema, $limite = 50, $offset = 0)
     {
         return self::select()
             ->where('idsistema', $idsistema)
@@ -38,7 +38,7 @@ class Emails extends Model
      * @param int $idemail ID do e-mail
      * @return array|false Retorna os dados do e-mail
      */
-    public function getById($idemail)
+    public static function getById($idemail)
     {
         return self::select()
             ->where('idemail', $idemail)

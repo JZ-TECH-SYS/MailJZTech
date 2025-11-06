@@ -26,19 +26,19 @@ class LogsController extends ctrl
             $limite = $_GET['limite'] ?? 100;
 
             if (!$idsistema) {
-                return $this->response(['mensagem' => 'ID do sistema é obrigatório'], 400);
+                return ctrl::response(['mensagem' => 'ID do sistema é obrigatório'], 400);
             }
 
             $emailLogs = new EmailLogs();
             $logs = $emailLogs->obterPorSistema($idsistema, $limite);
 
-            return $this->response([
+            return ctrl::response([
                 'sucesso' => true,
                 'logs' => $logs,
                 'total' => count($logs)
-            ]);
+            ], 200);
         } catch (\Exception $e) {
-            return $this->response([
+            return ctrl::response([
                 'sucesso' => false,
                 'mensagem' => 'Erro ao listar logs: ' . $e->getMessage()
             ], 500);
@@ -70,13 +70,13 @@ class LogsController extends ctrl
                 $logs = $emailLogs->obterRecentes(100);
             }
 
-            return $this->response([
+            return ctrl::response([
                 'sucesso' => true,
                 'logs' => $logs,
                 'total' => count($logs)
             ]);
         } catch (\Exception $e) {
-            return $this->response([
+            return ctrl::response([
                 'sucesso' => false,
                 'mensagem' => 'Erro ao filtrar logs: ' . $e->getMessage()
             ], 500);

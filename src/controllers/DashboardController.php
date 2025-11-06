@@ -41,13 +41,13 @@ class DashboardController extends ctrl
             $logsRecentes = $emailLogs->obterRecentes(10);
 
             // Retorna os dados
-            return $this->response([
+            return self::response([
                 'sucesso' => true,
                 'estatisticas' => $stats,
                 'logs_recentes' => $logsRecentes
-            ]);
+            ], 200);
         } catch (\Exception $e) {
-            return $this->response([
+            return self::response([
                 'sucesso' => false,
                 'mensagem' => 'Erro ao obter estatísticas: ' . $e->getMessage()
             ], 500);

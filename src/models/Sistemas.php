@@ -46,7 +46,7 @@ class Sistemas extends Model
      * @param string $chaveApi Chave de API do sistema
      * @return array|false Retorna os dados do sistema
      */
-    public function getByApiKey($chaveApi)
+    public static function getByApiKey($chaveApi)
     {
         return self::select()
             ->where('chave_api', $chaveApi)
