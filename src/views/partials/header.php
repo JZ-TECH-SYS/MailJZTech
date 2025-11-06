@@ -33,6 +33,11 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'dashboard') !== false ? 'active' : ''; ?>" href="<?php echo $base; ?>/dashboard">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'sistemas') !== false ? 'active' : ''; ?>" href="<?php echo $base; ?>/sistemas">
                             <i class="fas fa-cogs"></i> Sistemas
                         </a>
@@ -40,6 +45,16 @@
                     <li class="nav-item">
                         <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'emails') !== false ? 'active' : ''; ?>" href="<?php echo $base; ?>/emails">
                             <i class="fas fa-envelope"></i> E-mails
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'logs') !== false ? 'active' : ''; ?>" href="<?php echo $base; ?>/logs">
+                            <i class="fas fa-list"></i> Logs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'documentacao') !== false ? 'active' : ''; ?>" href="<?php echo $base; ?>/documentacao">
+                            <i class="fas fa-book"></i> Documentação
                         </a>
                     </li>
                     <li class="nav-item">
