@@ -15,13 +15,6 @@ use PDO;
  */
 class Usuario extends Model
 {
-    public $db;
-
-    public function __construct()
-    {
-        $this->db = Database::getInstance();
-    }
-
     /**
      * Busca informações do usuário com base no token fornecido.
      *
@@ -30,11 +23,10 @@ class Usuario extends Model
      */
     public function getUserToken($token)
     {
-        $sql = "SELECT * FROM usuarios WHERE token = :token AND status = 'ativo'";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':token', $token);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return self::select(['*'])
+            ->where('token', $token)
+            ->where('status', 'ativo')
+            ->one();
     }
 
     /**
@@ -45,11 +37,10 @@ class Usuario extends Model
      */
     public function getUserName($nome)
     {
-        $sql = "SELECT * FROM usuarios WHERE nome = :nome AND status = 'ativo'";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':nome', $nome);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return self::select(['*'])
+            ->where('nome', $nome)
+            ->where('status', 'ativo')
+            ->one();
     }
 
     /**
@@ -60,11 +51,10 @@ class Usuario extends Model
      */
     public function getUserEmail($email)
     {
-        $sql = "SELECT * FROM usuarios WHERE email = :email AND status = 'ativo'";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':email', $email);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return self::select(['*'])
+            ->where('email', $email)
+            ->where('status', 'ativo')
+            ->one();
     }
 
     /**
@@ -76,11 +66,9 @@ class Usuario extends Model
      */
     public function saveToken($token, $nome)
     {
-        $sql = "UPDATE usuarios SET token = :token, ultimo_acesso = NOW() WHERE nome = :nome";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':token', $token);
-        $stmt->bindValue(':nome', $nome);
-        return $stmt->execute();
+        return self::update(['token' => $token, 'ultimo_acesso' => date('Y-m-d H:i:s')])
+            ->where('nome', $nome)
+            ->execute();
     }
 
     /**
@@ -93,12 +81,13 @@ class Usuario extends Model
      */
     public function saveTotpSecret($idusuario, $secret, $backup_codes = [])
     {
-        $sql = "UPDATE usuarios SET totp_secret = :secret, totp_habilitado = TRUE, backup_codes = :backup_codes WHERE idusuario = :idusuario";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':idusuario', $idusuario);
-        $stmt->bindValue(':secret', $secret);
-        $stmt->bindValue(':backup_codes', json_encode($backup_codes));
-        return $stmt->execute();
+        return self::update([
+            'totp_secret' => $secret,
+            'totp_habilitado' => true,
+            'backup_codes' => json_encode($backup_codes)
+        ])
+            ->where('idusuario', $idusuario)
+            ->execute();
     }
 
     /**
@@ -109,9 +98,71 @@ class Usuario extends Model
      */
     public function clearToken($token)
     {
-        $sql = "UPDATE usuarios SET token = NULL WHERE token = :token";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':token', $token);
-        return $stmt->execute();
+        return self::update(['token' => null])
+            ->where('token', $token)
+            ->execute();
+    }
+
+    /**
+     * Cria um novo usuário.
+     *
+     * @param array $dados Dados do usuário (nome, email, senha, etc)
+     * @return int|false Retorna o ID do usuário criado ou false
+     */
+    public function criar($dados)
+    {
+        return self::insert($dados)->execute();
+    }
+
+    /**
+     * Busca um usuário por ID.
+     *
+     * @param int $idusuario ID do usuário
+     * @return array|false Retorna os dados do usuário
+     */
+    public function getById($idusuario)
+    {
+        return self::select(['*'])
+            ->where('idusuario', $idusuario)
+            ->one();
+    }
+
+    /**
+     * Lista todos os usuários ativos.
+     *
+     * @return array Retorna um array com todos os usuários
+     */
+    public function listar()
+    {
+        return self::select(['*'])
+            ->where('status', 'ativo')
+            ->get();
+    }
+
+    /**
+     * Atualiza dados de um usuário.
+     *
+     * @param int $idusuario ID do usuário
+     * @param array $dados Dados a atualizar
+     * @return bool Retorna true se atualizado com sucesso
+     */
+    public function atualizar($idusuario, $dados)
+    {
+        return self::update($dados)
+            ->where('idusuario', $idusuario)
+            ->execute();
+    }
+
+    /**
+     * Deleta um usuário (soft delete - marca como inativo).
+     *
+     * @param int $idusuario ID do usuário
+     * @return bool Retorna true se deletado com sucesso
+     */
+    public function deletar($idusuario)
+    {
+        return self::update(['status' => 'inativo'])
+            ->where('idusuario', $idusuario)
+            ->execute();
     }
 }

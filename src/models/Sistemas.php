@@ -7,115 +7,159 @@ use core\Model;
 /**
  * Classe modelo para a tabela 'sistemas' do banco de dados.
  * Representa os sistemas/clientes que utilizam a API de envio de e-mails.
+ *
+ * @author MailJZTech
+ * @date 2025-01-01
  */
 class Sistemas extends Model
 {
     /**
-     * Obtém todos os sistemas
+     * Obtém todos os sistemas ativos
+     *
+     * @return array Retorna um array com todos os sistemas
      */
-    public static function getAll()
+    public function getAll()
     {
-        $sql = "SELECT * FROM sistemas WHERE ativo = 1 ORDER BY data_criacao DESC";
-        return self::query($sql);
+        return self::select(['*'])
+            ->where('status', 'ativo')
+            ->orderBy('data_criacao', 'DESC')
+            ->get();
     }
 
     /**
      * Obtém um sistema pelo ID
+     *
+     * @param int $idsistema ID do sistema
+     * @return array|false Retorna os dados do sistema
      */
-    public static function getById($idsistema)
+    public function getById($idsistema)
     {
-        $sql = "SELECT * FROM sistemas WHERE idsistema = ? AND ativo = 1";
-        return self::query($sql, [$idsistema]);
+        return self::select(['*'])
+            ->where('idsistema', $idsistema)
+            ->where('status', 'ativo')
+            ->one();
     }
 
     /**
      * Obtém um sistema pela chave de API
+     *
+     * @param string $chaveApi Chave de API do sistema
+     * @return array|false Retorna os dados do sistema
      */
-    public static function getByApiKey($chaveApi)
+    public function getByApiKey($chaveApi)
     {
-        $sql = "SELECT * FROM sistemas WHERE chave_api = ? AND ativo = 1";
-        $result = self::query($sql, [$chaveApi]);
-        return !empty($result) ? $result[0] : null;
+        return self::select(['*'])
+            ->where('chave_api', $chaveApi)
+            ->where('status', 'ativo')
+            ->one();
+    }
+
+    /**
+     * Obtém sistemas por usuário
+     *
+     * @param int $idusuario ID do usuário
+     * @return array Retorna um array com os sistemas do usuário
+     */
+    public function getByUsuario($idusuario)
+    {
+        return self::select(['*'])
+            ->where('idusuario', $idusuario)
+            ->where('status', 'ativo')
+            ->orderBy('data_criacao', 'DESC')
+            ->get();
     }
 
     /**
      * Cria um novo sistema
+     *
+     * @param array $dados Dados do sistema
+     * @return int|false Retorna o ID do sistema criado
      */
-    public static function create($dados)
+    public function criar($dados)
     {
-        $sql = "INSERT INTO sistemas (nome, descricao, nome_remetente, email_remetente, chave_api, ativo) 
-                VALUES (?, ?, ?, ?, ?, 1)";
-        
-        return self::query($sql, [
-            $dados['nome'],
-            $dados['descricao'] ?? null,
-            $dados['nome_remetente'],
-            $dados['email_remetente'] ?? 'contato@gztech.com.br',
-            $dados['chave_api']
-        ]);
+        return self::insert([
+            'idusuario' => $dados['idusuario'],
+            'nome' => $dados['nome'],
+            'descricao' => $dados['descricao'] ?? null,
+            'nome_remetente' => $dados['nome_remetente'],
+            'email_remetente' => $dados['email_remetente'] ?? 'contato@jztech.com.br',
+            'chave_api' => $dados['chave_api'],
+            'status' => 'ativo'
+        ])->execute();
     }
 
     /**
      * Atualiza um sistema
+     *
+     * @param int $idsistema ID do sistema
+     * @param array $dados Dados a atualizar
+     * @return bool Retorna true se atualizado com sucesso
      */
-    public static function update($idsistema, $dados)
+    public function atualizar($idsistema, $dados)
     {
-        $campos = [];
-        $valores = [];
-
-        if (isset($dados['nome'])) {
-            $campos[] = "nome = ?";
-            $valores[] = $dados['nome'];
-        }
-
-        if (isset($dados['descricao'])) {
-            $campos[] = "descricao = ?";
-            $valores[] = $dados['descricao'];
-        }
-
-        if (isset($dados['nome_remetente'])) {
-            $campos[] = "nome_remetente = ?";
-            $valores[] = $dados['nome_remetente'];
-        }
-
-        if (isset($dados['ativo'])) {
-            $campos[] = "ativo = ?";
-            $valores[] = $dados['ativo'] ? 1 : 0;
-        }
-
-        $campos[] = "data_atualizacao = NOW()";
-        $valores[] = $idsistema;
-
-        $sql = "UPDATE sistemas SET " . implode(", ", $campos) . " WHERE idsistema = ?";
+        $dados['data_atualizacao'] = date('Y-m-d H:i:s');
         
-        return self::query($sql, $valores);
+        return self::update($dados)
+            ->where('idsistema', $idsistema)
+            ->execute();
     }
 
     /**
      * Desativa um sistema (soft delete)
+     *
+     * @param int $idsistema ID do sistema
+     * @return bool Retorna true se desativado com sucesso
      */
-    public static function deactivate($idsistema)
+    public function desativar($idsistema)
     {
-        $sql = "UPDATE sistemas SET ativo = 0, data_atualizacao = NOW() WHERE idsistema = ?";
-        return self::query($sql, [$idsistema]);
+        return self::update([
+            'status' => 'inativo',
+            'data_atualizacao' => date('Y-m-d H:i:s')
+        ])
+            ->where('idsistema', $idsistema)
+            ->execute();
     }
 
     /**
      * Gera uma nova chave de API
+     *
+     * @return string Retorna a chave de API gerada
      */
-    public static function generateApiKey()
+    public static function gerarChaveApi()
     {
         return bin2hex(random_bytes(32));
     }
 
     /**
-     * Atualiza a chave de API de um sistema
+     * Regenera a chave de API de um sistema
+     *
+     * @param int $idsistema ID do sistema
+     * @return string|false Retorna a nova chave de API
      */
-    public static function updateApiKey($idsistema)
+    public function regenerarChaveApi($idsistema)
     {
-        $novaChave = self::generateApiKey();
-        $sql = "UPDATE sistemas SET chave_api = ?, data_atualizacao = NOW() WHERE idsistema = ?";
-        self::query($sql, [$novaChave, $idsistema]);
-        return $novaChave;
+        $novaChave = self::gerarChaveApi();
+        
+        $resultado = self::update([
+            'chave_api' => $novaChave,
+            'data_atualizacao' => date('Y-m-d H:i:s')
+        ])
+            ->where('idsistema', $idsistema)
+            ->execute();
+
+        return $resultado ? $novaChave : false;
+    }
+
+    /**
+     * Atualiza o último uso do sistema
+     *
+     * @param int $idsistema ID do sistema
+     * @return bool Retorna true se atualizado com sucesso
+     */
+    public function atualizarUltimoUso($idsistema)
+    {
+        return self::update(['ultimo_uso' => date('Y-m-d H:i:s')])
+            ->where('idsistema', $idsistema)
+            ->execute();
     }
 }
