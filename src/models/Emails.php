@@ -100,31 +100,29 @@ class Emails extends Model
      */
     public function contarPorSistema($idsistema)
     {
-        $result = self::selectRaw(['COUNT(*) as total'])
+        $result = self::select(['*'])
             ->where('idsistema', $idsistema)
-            ->one();
+            ->count();
         
-        return $result['total'] ?? 0;
+        return $result ?? 0;
     }
 
     /**
-     * Obtém estatísticas de e-mails de um sistema (QueryBuilder)
+     * Obtém estatísticas de e-mails de um sistema
+     * Usa SQL puro via switchParams()
      *
      * @param int $idsistema ID do sistema
      * @return array|false Retorna as estatísticas
      */
     public function obterEstatisticas($idsistema)
     {
-        $result = self::selectRaw([
-            'COUNT(*) as total',
-            'SUM(CASE WHEN status = "enviado" THEN 1 ELSE 0 END) as enviados',
-            'SUM(CASE WHEN status = "erro" THEN 1 ELSE 0 END) as erros',
-            'SUM(CASE WHEN status = "pendente" THEN 1 ELSE 0 END) as pendentes'
-        ])
-            ->where('idsistema', $idsistema)
-            ->one();
+        $params = [
+            'idsistema' => $idsistema
+        ];
         
-        return $result ?: false;
+        $resultado = Database::switchParams($params, 'emails_obter_estatisticas', true);
+        
+        return !empty($resultado['retorno']) ? $resultado['retorno'][0] : false;
     }
 
     /**
