@@ -13,13 +13,6 @@ use src\models\Sistemas as SistemasModel;
  */
 class Sistemas
 {
-    private $model;
-
-    public function __construct()
-    {
-        $this->model = new SistemasModel();
-    }
-
     /**
      * Cria um novo sistema
      *
@@ -28,7 +21,7 @@ class Sistemas
      * @param string $descricao Descrição do sistema
      * @return array Retorna resultado da operação
      */
-    public function criar($idusuario, $nome, $descricao = '')
+    public static function criar($idusuario, $nome, $descricao = '')
     {
         // Validações
         if (empty($nome)) {
@@ -40,7 +33,7 @@ class Sistemas
         }
 
         // Gera chave de API única
-        $chaveApi = $this->gerarChaveApi();
+        $chaveApi = self::gerarChaveApi();
 
         // Cria o sistema
         $dados = [
@@ -51,7 +44,7 @@ class Sistemas
             'status' => 'ativo'
         ];
 
-        $idsistema = $this->model->criar($dados);
+        $idsistema = SistemasModel::criar($dados);
 
         if ($idsistema) {
             return [
@@ -74,10 +67,10 @@ class Sistemas
      * @param string $descricao Nova descrição
      * @return array Retorna resultado da operação
      */
-    public function atualizar($idsistema, $idusuario, $nome, $descricao = '')
+    public static function atualizar($idsistema, $idusuario, $nome, $descricao = '')
     {
         // Verifica se o sistema pertence ao usuário
-        $sistema = $this->model->getById($idsistema);
+        $sistema = SistemasModel::getById($idsistema);
         if (!$sistema || $sistema['idusuario'] != $idusuario) {
             return ['sucesso' => false, 'mensagem' => 'Sistema não encontrado'];
         }
@@ -92,7 +85,7 @@ class Sistemas
             'descricao' => $descricao
         ];
 
-        $resultado = $this->model->atualizar($idsistema, $dados);
+        $resultado = SistemasModel::atualizar($idsistema, $dados);
 
         if ($resultado) {
             return ['sucesso' => true, 'mensagem' => 'Sistema atualizado com sucesso'];
@@ -108,15 +101,15 @@ class Sistemas
      * @param int $idusuario ID do usuário (para validação)
      * @return array Retorna resultado da operação
      */
-    public function deletar($idsistema, $idusuario)
+    public static function deletar($idsistema, $idusuario)
     {
         // Verifica se o sistema pertence ao usuário
-        $sistema = $this->model->getById($idsistema);
+        $sistema = SistemasModel::getById($idsistema);
         if (!$sistema || $sistema['idusuario'] != $idusuario) {
             return ['sucesso' => false, 'mensagem' => 'Sistema não encontrado'];
         }
 
-        $resultado = $this->model->deletar($idsistema);
+        $resultado = SistemasModel::desativar($idsistema);
 
         if ($resultado) {
             return ['sucesso' => true, 'mensagem' => 'Sistema deletado com sucesso'];
@@ -132,18 +125,17 @@ class Sistemas
      * @param int $idusuario ID do usuário (para validação)
      * @return array Retorna resultado da operação
      */
-    public function regenerarChaveApi($idsistema, $idusuario)
+    public static function regenerarChaveApi($idsistema, $idusuario)
     {
         // Verifica se o sistema pertence ao usuário
-        $sistema = $this->model->getById($idsistema);
+        $sistema = SistemasModel::getById($idsistema);
         if (!$sistema || $sistema['idusuario'] != $idusuario) {
             return ['sucesso' => false, 'mensagem' => 'Sistema não encontrado'];
         }
 
-        $novaChave = $this->gerarChaveApi();
-        $resultado = $this->model->atualizar($idsistema, ['chave_api' => $novaChave]);
+        $novaChave = SistemasModel::regenerarChaveApi($idsistema);
 
-        if ($resultado) {
+        if ($novaChave) {
             return [
                 'sucesso' => true,
                 'mensagem' => 'Chave de API regenerada com sucesso',
@@ -161,9 +153,9 @@ class Sistemas
      * @param int $idusuario ID do usuário (para validação)
      * @return array|false Retorna os dados do sistema
      */
-    public function obter($idsistema, $idusuario)
+    public static function obter($idsistema, $idusuario)
     {
-        $sistema = $this->model->getById($idsistema);
+        $sistema = SistemasModel::getById($idsistema);
 
         if (!$sistema || $sistema['idusuario'] != $idusuario) {
             return false;
@@ -178,9 +170,9 @@ class Sistemas
      * @param int $idusuario ID do usuário
      * @return array Retorna um array com os sistemas
      */
-    public function listar($idusuario)
+    public static function listar($idusuario)
     {
-        return $this->model->getByUsuario($idusuario);
+        return SistemasModel::getByUsuario($idusuario);
     }
 
     /**
@@ -189,9 +181,9 @@ class Sistemas
      * @param string $chaveApi Chave de API
      * @return array|false Retorna os dados do sistema se válido
      */
-    public function validarChaveApi($chaveApi)
+    public static function validarChaveApi($chaveApi)
     {
-        return $this->model->getByApiKey($chaveApi);
+        return SistemasModel::getByApiKey($chaveApi);
     }
 
     /**
@@ -199,7 +191,7 @@ class Sistemas
      *
      * @return string Retorna a chave de API gerada
      */
-    private function gerarChaveApi()
+    private static function gerarChaveApi()
     {
         return 'sk_' . bin2hex(random_bytes(32));
     }

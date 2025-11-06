@@ -13,26 +13,16 @@ use Exception;
 
 class Usuario
 {
-    public $usuario;
-
-    /**
-     * Construtor da classe UsuarioHandler.
-     */
-    public function __construct()
-    {
-        $this->usuario = new UsuarioModel();
-    }
-
     /**
      * Verifica se o usuário está logado com base no token de sessão.
      *
      * @return bool Retorna true se o usuário estiver logado, caso contrário, retorna false.
      */
-    public function checkLogin()
+    public static function checkLogin()
     {
         if (!empty($_SESSION['token'])) {
             $token = $_SESSION['token'];
-            $data = $this->usuario->getUserToken($token);
+            $data = UsuarioModel::getUserToken($token);
             if ($data && count($data) > 0) {
                 return true;
             }
@@ -47,13 +37,13 @@ class Usuario
      * @param string $senha A senha fornecida
      * @return array|false Retorna um array contendo informações do usuário, incluindo o token, se a autenticação for bem-sucedida; caso contrário, retorna false.
      */
-    public function verifyLogin($nome, $senha)
+    public static function verifyLogin($nome, $senha)
     {
-        $usuario = $this->usuario->getUserName($nome);
+        $usuario = UsuarioModel::getUserName($nome);
         if (!empty($usuario)) {
             if (password_verify($senha, $usuario['senha'])) {
                 $token = md5(time() . rand(0, 9999) . time());
-                $this->usuario->saveToken($token, $nome);
+                UsuarioModel::saveToken($token, $nome);
                 $usuario['token'] = $token;
                 $_SESSION['token'] = $token;
                 
@@ -69,9 +59,9 @@ class Usuario
      * @param string $token O token do usuário
      * @return bool Retorna true se o logout foi bem-sucedido
      */
-    public function logout($token)
+    public static function logout($token)
     {
-        return $this->usuario->clearToken($token);
+        return UsuarioModel::clearToken($token);
     }
 
     /**
@@ -79,7 +69,7 @@ class Usuario
      *
      * @return string Retorna o secret TOTP
      */
-    public function generateTotpSecret()
+    public static function generateTotpSecret()
     {
         // Gera um secret aleatório de 32 caracteres
         $secret = '';
@@ -96,7 +86,7 @@ class Usuario
      * @param int $quantidade Quantidade de códigos a gerar (padrão 10)
      * @return array Retorna um array com os códigos de backup
      */
-    public function generateBackupCodes($quantidade = 10)
+    public static function generateBackupCodes($quantidade = 10)
     {
         $codes = [];
         for ($i = 0; $i < $quantidade; $i++) {
@@ -116,7 +106,7 @@ class Usuario
      * @param string $code O código TOTP fornecido
      * @return bool Retorna true se o código for válido
      */
-    public function verifyTotp($secret, $code)
+    public static function verifyTotp($secret, $code)
     {
         // Implementação simples de verificação TOTP
         // Você pode usar uma biblioteca como "spomky-labs/otphp" para uma implementação mais robusta
@@ -142,9 +132,9 @@ class Usuario
      * @param string $secret Secret TOTP
      * @return bool Retorna true se a operação foi bem-sucedida
      */
-    public function saveTotpSecret($idusuario, $secret)
+    public static function saveTotpSecret($idusuario, $secret)
     {
-        $backup_codes = $this->generateBackupCodes(10);
-        return $this->usuario->saveTotpSecret($idusuario, $secret, $backup_codes);
+        $backup_codes = self::generateBackupCodes(10);
+        return UsuarioModel::saveTotpSecret($idusuario, $secret, $backup_codes);
     }
 }

@@ -15,17 +15,6 @@ use src\handlers\service\EmailService;
  */
 class Emails
 {
-    private $modelEmails;
-    private $modelLogs;
-    private $emailService;
-
-    public function __construct()
-    {
-        $this->modelEmails = new EmailsModel();
-        $this->modelLogs = new EmailLogsModel();
-        $this->emailService = new EmailService();
-    }
-
     /**
      * Envia um e-mail
      *
@@ -34,7 +23,7 @@ class Emails
      * @param array $dados Dados do e-mail
      * @return array Retorna resultado da operação
      */
-    public function enviar($idsistema, $idusuario, $dados)
+    public static function enviar($idsistema, $idusuario, $dados)
     {
         // Validações
         if (empty($dados['destinatario'])) {
@@ -50,7 +39,7 @@ class Emails
         }
 
         // Cria registro de e-mail
-        $idEmail = $this->modelEmails->criar([
+        $idEmail = EmailsModel::criar([
             'idsistema' => $idsistema,
             'idusuario' => $idusuario,
             'destinatario' => $dados['destinatario'],
@@ -64,26 +53,28 @@ class Emails
         ]);
 
         if (!$idEmail) {
-            $this->modelLogs->criar(null, $idsistema, $idusuario, 'erro', 'Falha ao criar registro de e-mail');
+            EmailLogsModel::criar(null, $idsistema, $idusuario, 'erro', 'Falha ao criar registro de e-mail');
             return ['sucesso' => false, 'mensagem' => 'Erro ao criar registro de e-mail'];
         }
 
         // Tenta enviar o e-mail
         try {
-            $resultado = $this->emailService->enviar(
+            $resultado = EmailService::sendEmail(
+                $idsistema,
                 $dados['destinatario'],
                 $dados['assunto'],
                 $dados['corpo_html'] ?? $dados['corpo_texto'],
-                $dados['nome_remetente'] ?? 'MailJZTech',
+                $dados['corpo_texto'] ?? null,
                 $dados['cc'] ?? null,
                 $dados['bcc'] ?? null,
-                $dados['anexos'] ?? []
+                $dados['anexos'] ?? null,
+                $dados['nome_remetente'] ?? 'MailJZTech'
             );
 
-            if ($resultado['sucesso']) {
+            if ($resultado['success']) {
                 // Atualiza status para enviado
-                $this->modelEmails->atualizarStatus($idEmail, 'enviado');
-                $this->modelLogs->criar($idEmail, $idsistema, $idusuario, 'envio', 'E-mail enviado com sucesso');
+                EmailsModel::atualizarStatus($idEmail, 'enviado');
+                EmailLogsModel::criar($idEmail, $idsistema, $idusuario, 'envio', 'E-mail enviado com sucesso');
 
                 return [
                     'sucesso' => true,
@@ -92,18 +83,18 @@ class Emails
                 ];
             } else {
                 // Atualiza status para erro
-                $this->modelEmails->atualizarStatus($idEmail, 'erro', $resultado['mensagem']);
-                $this->modelLogs->criar($idEmail, $idsistema, $idusuario, 'erro', 'Falha ao enviar: ' . $resultado['mensagem']);
+                EmailsModel::atualizarStatus($idEmail, 'erro', $resultado['message']);
+                EmailLogsModel::criar($idEmail, $idsistema, $idusuario, 'erro', 'Falha ao enviar: ' . $resultado['message']);
 
                 return [
                     'sucesso' => false,
-                    'mensagem' => 'Erro ao enviar e-mail: ' . $resultado['mensagem'],
+                    'mensagem' => 'Erro ao enviar e-mail: ' . $resultado['message'],
                     'idemail' => $idEmail
                 ];
             }
         } catch (\Exception $e) {
-            $this->modelEmails->atualizarStatus($idEmail, 'erro', $e->getMessage());
-            $this->modelLogs->criar($idEmail, $idsistema, $idusuario, 'erro', 'Exceção: ' . $e->getMessage());
+            EmailsModel::atualizarStatus($idEmail, 'erro', $e->getMessage());
+            EmailLogsModel::criar($idEmail, $idsistema, $idusuario, 'erro', 'Exceção: ' . $e->getMessage());
 
             return [
                 'sucesso' => false,
@@ -120,9 +111,9 @@ class Emails
      * @param int $idusuario ID do usuário (para validação)
      * @return array|false Retorna os dados do e-mail
      */
-    public function obter($idemail, $idusuario)
+    public static function obter($idemail, $idusuario)
     {
-        $email = $this->modelEmails->getById($idemail);
+        $email = EmailsModel::getById($idemail);
 
         if (!$email) {
             return false;
@@ -142,9 +133,9 @@ class Emails
      * @param int $offset Offset para paginação
      * @return array Retorna um array com os e-mails
      */
-    public function listar($idsistema, $limite = 50, $offset = 0)
+    public static function listar($idsistema, $limite = 50, $offset = 0)
     {
-        return $this->modelEmails->getBySystem($idsistema, $limite, $offset);
+        return EmailsModel::getBySystem($idsistema, $limite, $offset);
     }
 
     /**
@@ -153,9 +144,9 @@ class Emails
      * @param int $idsistema ID do sistema
      * @return array Retorna as estatísticas
      */
-    public function obterEstatisticas($idsistema)
+    public static function obterEstatisticas($idsistema)
     {
-        return $this->modelEmails->obterEstatisticas($idsistema);
+        return EmailsModel::obterEstatisticas($idsistema);
     }
 
     /**
@@ -164,17 +155,25 @@ class Emails
      * @param string $email E-mail de teste
      * @return array Retorna resultado do teste
      */
-    public function testar($email)
+    public static function testar($email)
     {
         try {
-            $resultado = $this->emailService->enviar(
+            $resultado = EmailService::sendEmail(
+                0, // idsistema para teste
                 $email,
                 'Teste de Configuração - MailJZTech',
                 '<h1>Teste de Configuração</h1><p>Se você recebeu este e-mail, a configuração está funcionando corretamente.</p>',
+                'Se você recebeu este e-mail, a configuração está funcionando corretamente.',
+                null,
+                null,
+                null,
                 'MailJZTech Teste'
             );
 
-            return $resultado;
+            return [
+                'sucesso' => $resultado['success'],
+                'mensagem' => $resultado['message']
+            ];
         } catch (\Exception $e) {
             return [
                 'sucesso' => false,

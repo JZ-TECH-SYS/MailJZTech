@@ -16,13 +16,6 @@ use Exception;
 
 class LoginController extends ctrl
 {
-    private $usuarioHandler;
-
-    public function __construct()
-    {
-        $this->usuarioHandler = new UsuarioHandler();
-    }
-
     /**
      * Renderiza a página de login
      * GET /
@@ -30,7 +23,7 @@ class LoginController extends ctrl
     public function index()
     {
         // Se já está logado, redireciona para dashboard
-        if ($this->usuarioHandler->checkLogin()) {
+        if (UsuarioHandler::checkLogin()) {
             $this->redirect('/dashboard');
         }
         
@@ -52,7 +45,7 @@ class LoginController extends ctrl
                 throw new Exception('Usuário e senha são obrigatórios');
             }
 
-            $usuario = $this->usuarioHandler->verifyLogin($nome, $senha);
+            $usuario = UsuarioHandler::verifyLogin($nome, $senha);
             
             if (!$usuario) {
                 throw new Exception('Usuário e/ou senha não conferem');
@@ -108,12 +101,12 @@ class LoginController extends ctrl
             }
 
             // Verifica o código TOTP
-            if (!$this->usuarioHandler->verifyTotp($secret, $codigo)) {
+            if (!UsuarioHandler::verifyTotp($secret, $codigo)) {
                 throw new Exception('Código TOTP inválido');
             }
 
             // Salva o secret TOTP para o usuário
-            $this->usuarioHandler->saveTotpSecret($idusuario, $secret);
+            UsuarioHandler::saveTotpSecret($idusuario, $secret);
 
             ctrl::response([
                 'success' => true,
@@ -145,7 +138,7 @@ class LoginController extends ctrl
             }
 
             $token = $_SESSION['token'];
-            $this->usuarioHandler->logout($token);
+            UsuarioHandler::logout($token);
             
             unset($_SESSION['token']);
             session_destroy();

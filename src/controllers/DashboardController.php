@@ -31,14 +31,11 @@ class DashboardController extends ctrl
                 return $this->response(['mensagem' => 'ID do sistema é obrigatório'], 400);
             }
 
-            $emailsHandler = new EmailsHandler();
-            $emailLogs = new EmailLogs();
-
             // Obtém estatísticas de e-mails
-            $stats = $emailsHandler->obterEstatisticas($idsistema);
+            $stats = EmailsHandler::obterEstatisticas($idsistema);
 
             // Obtém logs recentes
-            $logsRecentes = $emailLogs->obterRecentes(10);
+            $logsRecentes = EmailLogs::obterRecentes(10);
 
             // Retorna os dados
             return self::response([

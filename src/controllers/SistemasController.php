@@ -4,7 +4,7 @@ namespace src\controllers;
 
 use core\Controller as ctrl;
 use Exception;
-use src\models\Sistemas;
+use src\models\Sistemas as SistemasModel;
 
 /**
  * SistemasController - Responsável por gerenciar sistemas/clientes da API
@@ -23,7 +23,7 @@ class SistemasController extends ctrl
             // Validar autenticação (para admin)
             $this->validarAutenticacao();
 
-            $sistemas = Sistemas::getAll();
+            $sistemas = SistemasModel::getAll();
             ctrl::response($sistemas, 200);
 
         } catch (Exception $e) {
@@ -46,7 +46,7 @@ class SistemasController extends ctrl
                 throw new Exception('ID do sistema não fornecido');
             }
 
-            $sistema = Sistemas::getById($idsistema);
+            $sistema = SistemasModel::getById($idsistema);
             if (!$sistema) {
                 throw new Exception('Sistema não encontrado');
             }
@@ -80,10 +80,11 @@ class SistemasController extends ctrl
             ctrl::verificarCamposVazios($dados, ['nome', 'nome_remetente']);
 
             // Gerar chave de API única
-            $chaveApi = Sistemas::generateApiKey();
+            $chaveApi = SistemasModel::gerarChaveApi();
 
             // Preparar dados
             $dadosSistema = [
+                'idusuario' => 1, // Admin padrão
                 'nome' => $dados['nome'],
                 'descricao' => $dados['descricao'] ?? null,
                 'nome_remetente' => $dados['nome_remetente'],
@@ -92,7 +93,7 @@ class SistemasController extends ctrl
             ];
 
             // Criar sistema
-            Sistemas::create($dadosSistema);
+            SistemasModel::criar($dadosSistema);
 
             ctrl::response([
                 'mensagem' => 'Sistema criado com sucesso',
@@ -132,7 +133,7 @@ class SistemasController extends ctrl
             $idsistema = $dados['idsistema'];
 
             // Verificar se sistema existe
-            $sistema = Sistemas::getById($idsistema);
+            $sistema = SistemasModel::getById($idsistema);
             if (!$sistema) {
                 throw new Exception('Sistema não encontrado');
             }
@@ -153,7 +154,7 @@ class SistemasController extends ctrl
             }
 
             // Atualizar
-            Sistemas::update($idsistema, $dadosAtualizar);
+            SistemasModel::atualizar($idsistema, $dadosAtualizar);
 
             ctrl::response([
                 'mensagem' => 'Sistema atualizado com sucesso'
@@ -181,13 +182,13 @@ class SistemasController extends ctrl
             }
 
             // Verificar se sistema existe
-            $sistema = Sistemas::getById($idsistema);
+            $sistema = SistemasModel::getById($idsistema);
             if (!$sistema) {
                 throw new Exception('Sistema não encontrado');
             }
 
             // Desativar sistema
-            Sistemas::deactivate($idsistema);
+            SistemasModel::desativar($idsistema);
 
             ctrl::response([
                 'mensagem' => 'Sistema deletado com sucesso'
@@ -220,13 +221,13 @@ class SistemasController extends ctrl
             $idsistema = $dados['idsistema'];
 
             // Verificar se sistema existe
-            $sistema = Sistemas::getById($idsistema);
+            $sistema = SistemasModel::getById($idsistema);
             if (!$sistema) {
                 throw new Exception('Sistema não encontrado');
             }
 
             // Gerar nova chave
-            $novaChave = Sistemas::updateApiKey($idsistema);
+            $novaChave = SistemasModel::regenerarChaveApi($idsistema);
 
             ctrl::response([
                 'mensagem' => 'Chave de API regenerada com sucesso',

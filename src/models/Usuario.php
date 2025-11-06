@@ -21,7 +21,7 @@ class Usuario extends Model
      * @param string $token O token de autenticação do usuário
      * @return array|false Retorna um array associativo contendo as informações do usuário
      */
-    public function getUserToken($token)
+    public static function getUserToken($token)
     {
         return self::select()
             ->where('token', $token)
@@ -35,7 +35,7 @@ class Usuario extends Model
      * @param string $nome O nome de usuário
      * @return array|false Retorna um array associativo contendo as informações do usuário
      */
-    public function getUserName($nome)
+    public static function getUserName($nome)
     {
         return self::select()
             ->where('nome', $nome)
@@ -49,7 +49,7 @@ class Usuario extends Model
      * @param string $email O email do usuário
      * @return array|false Retorna um array associativo contendo as informações do usuário
      */
-    public function getUserEmail($email)
+    public static function getUserEmail($email)
     {
         return self::select()
             ->where('email', $email)
@@ -64,7 +64,7 @@ class Usuario extends Model
      * @param string $nome O nome de usuário
      * @return bool Retorna true se a atualização foi bem-sucedida
      */
-    public function saveToken($token, $nome)
+    public static function saveToken($token, $nome)
     {
         return self::update(['token' => $token, 'ultimo_acesso' => date('Y-m-d H:i:s')])
             ->where('nome', $nome)
@@ -79,7 +79,7 @@ class Usuario extends Model
      * @param array $backup_codes Códigos de backup
      * @return bool Retorna true se a atualização foi bem-sucedida
      */
-    public function saveTotpSecret($idusuario, $secret, $backup_codes = [])
+    public static function saveTotpSecret($idusuario, $secret, $backup_codes = [])
     {
         return self::update([
             'totp_secret' => $secret,
@@ -96,7 +96,7 @@ class Usuario extends Model
      * @param string $token O token a ser limpo
      * @return bool Retorna true se a limpeza foi bem-sucedida
      */
-    public function clearToken($token)
+    public static function clearToken($token)
     {
         return self::update(['token' => null])
             ->where('token', $token)
@@ -109,7 +109,7 @@ class Usuario extends Model
      * @param array $dados Dados do usuário (nome, email, senha, etc)
      * @return int|false Retorna o ID do usuário criado ou false
      */
-    public function criar($dados)
+    public static function criar($dados)
     {
         return self::insert($dados)->execute();
     }
@@ -120,7 +120,7 @@ class Usuario extends Model
      * @param int $idusuario ID do usuário
      * @return array|false Retorna os dados do usuário
      */
-    public function getById($idusuario)
+    public static function getById($idusuario)
     {
         return self::select()
             ->where('idusuario', $idusuario)
@@ -132,7 +132,7 @@ class Usuario extends Model
      *
      * @return array Retorna um array com todos os usuários
      */
-    public function listar()
+    public static function listar()
     {
         return self::select()
             ->where('status', 'ativo')
@@ -146,7 +146,7 @@ class Usuario extends Model
      * @param array $dados Dados a atualizar
      * @return bool Retorna true se atualizado com sucesso
      */
-    public function atualizar($idusuario, $dados)
+    public static function atualizar($idusuario, $dados)
     {
         return self::update($dados)
             ->where('idusuario', $idusuario)
@@ -159,7 +159,7 @@ class Usuario extends Model
      * @param int $idusuario ID do usuário
      * @return bool Retorna true se deletado com sucesso
      */
-    public function deletar($idusuario)
+    public static function deletar($idusuario)
     {
         return self::update(['status' => 'inativo'])
             ->where('idusuario', $idusuario)

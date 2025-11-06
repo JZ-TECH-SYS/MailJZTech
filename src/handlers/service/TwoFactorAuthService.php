@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Handlers\Service;
+namespace src\handlers\service;
 
 use Exception;
 

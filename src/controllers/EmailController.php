@@ -171,7 +171,7 @@ class EmailController extends ctrl
             }
 
             // Obter estatísticas
-            $stats = Emails::getStats($sistema['idsistema']);
+            $stats = Emails::obterEstatisticas($sistema['idsistema']);
 
             ctrl::response($stats, 200);
 

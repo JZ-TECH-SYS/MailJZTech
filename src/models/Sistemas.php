@@ -18,7 +18,7 @@ class Sistemas extends Model
      *
      * @return array Retorna um array com todos os sistemas
      */
-    public function getAll()
+    public static function getAll()
     {
         return self::select()
             ->where('status', 'ativo')
@@ -32,7 +32,7 @@ class Sistemas extends Model
      * @param int $idsistema ID do sistema
      * @return array|false Retorna os dados do sistema
      */
-    public function getById($idsistema)
+    public static function getById($idsistema)
     {
         return self::select()
             ->where('idsistema', $idsistema)
@@ -60,7 +60,7 @@ class Sistemas extends Model
      * @param int $idusuario ID do usuário
      * @return array Retorna um array com os sistemas do usuário
      */
-    public function getByUsuario($idusuario)
+    public static function getByUsuario($idusuario)
     {
         return self::select()
             ->where('idusuario', $idusuario)
@@ -75,7 +75,7 @@ class Sistemas extends Model
      * @param array $dados Dados do sistema
      * @return int|false Retorna o ID do sistema criado
      */
-    public function criar($dados)
+    public static function criar($dados)
     {
         return self::insert([
             'idusuario' => $dados['idusuario'],
@@ -95,7 +95,7 @@ class Sistemas extends Model
      * @param array $dados Dados a atualizar
      * @return bool Retorna true se atualizado com sucesso
      */
-    public function atualizar($idsistema, $dados)
+    public static function atualizar($idsistema, $dados)
     {
         $dados['data_atualizacao'] = date('Y-m-d H:i:s');
         
@@ -110,7 +110,7 @@ class Sistemas extends Model
      * @param int $idsistema ID do sistema
      * @return bool Retorna true se desativado com sucesso
      */
-    public function desativar($idsistema)
+    public static function desativar($idsistema)
     {
         return self::update([
             'status' => 'inativo',
@@ -136,7 +136,7 @@ class Sistemas extends Model
      * @param int $idsistema ID do sistema
      * @return string|false Retorna a nova chave de API
      */
-    public function regenerarChaveApi($idsistema)
+    public static function regenerarChaveApi($idsistema)
     {
         $novaChave = self::gerarChaveApi();
         
@@ -156,7 +156,7 @@ class Sistemas extends Model
      * @param int $idsistema ID do sistema
      * @return bool Retorna true se atualizado com sucesso
      */
-    public function atualizarUltimoUso($idsistema)
+    public static function atualizarUltimoUso($idsistema)
     {
         return self::update(['ultimo_uso' => date('Y-m-d H:i:s')])
             ->where('idsistema', $idsistema)

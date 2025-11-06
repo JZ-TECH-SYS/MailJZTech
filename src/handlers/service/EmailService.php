@@ -50,8 +50,8 @@ class EmailService
                 'status' => 'pendente'
             ];
 
-            $resultInsert = Emails::create($emailData);
-            $idemail = $resultInsert->lastInsertId();
+            $resultInsert = Emails::criar($emailData);
+            $idemail = $resultInsert;
 
             $mail = new PHPMailer(true);
 
@@ -112,10 +112,10 @@ class EmailService
             $mail->send();
 
             // Atualizar status para enviado
-            Emails::updateStatus($idemail, 'enviado');
+            Emails::atualizarStatus($idemail, 'enviado');
 
             // Registrar log
-            EmailLogs::create($idemail, 'enviado', 'E-mail enviado com sucesso via SMTP');
+            EmailLogs::criar($idemail, $idsistema, 0, 'enviado', 'E-mail enviado com sucesso via SMTP');
 
             return [
                 'success' => true,
@@ -129,8 +129,8 @@ class EmailService
             // Se o e-mail foi criado, atualizar status para erro
             if (isset($idemail)) {
                 $errorMsg = $e->getMessage();
-                Emails::updateStatus($idemail, 'erro', $errorMsg);
-                EmailLogs::create($idemail, 'erro', $errorMsg);
+                Emails::atualizarStatus($idemail, 'erro', $errorMsg);
+                EmailLogs::criar($idemail, $idsistema, 0, 'erro', $errorMsg);
             }
 
             return [
@@ -145,8 +145,8 @@ class EmailService
             // Se o e-mail foi criado, atualizar status para erro
             if (isset($idemail)) {
                 $errorMsg = $e->getMessage();
-                Emails::updateStatus($idemail, 'erro', $errorMsg);
-                EmailLogs::create($idemail, 'erro', $errorMsg);
+                Emails::atualizarStatus($idemail, 'erro', $errorMsg);
+                EmailLogs::criar($idemail, $idsistema, 0, 'erro', $errorMsg);
             }
 
             return [

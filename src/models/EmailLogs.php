@@ -25,7 +25,7 @@ class EmailLogs extends Model
      * @param array|null $dados_adicionais Dados adicionais em JSON
      * @return int|false Retorna o ID do log criado
      */
-    public function criar($idemail, $idsistema, $idusuario, $tipo_log, $mensagem, $dados_adicionais = null)
+    public static function criar($idemail, $idsistema, $idusuario, $tipo_log, $mensagem, $dados_adicionais = null)
     {
         return self::insert([
             'idemail' => $idemail,
@@ -45,7 +45,7 @@ class EmailLogs extends Model
      * @param int $idemail ID do e-mail
      * @return array Retorna um array com os logs
      */
-    public function obterPorEmail($idemail)
+    public static function obterPorEmail($idemail)
     {
         return self::select()
             ->where('idemail', $idemail)
@@ -60,7 +60,7 @@ class EmailLogs extends Model
      * @param int $limite Limite de registros
      * @return array Retorna um array com os logs
      */
-    public function obterPorSistema($idsistema, $limite = 100)
+    public static function obterPorSistema($idsistema, $limite = 100)
     {
         return self::select()
             ->where('idsistema', $idsistema)
@@ -76,7 +76,7 @@ class EmailLogs extends Model
      * @param int $limite Limite de registros
      * @return array Retorna um array com os logs recentes
      */
-    public function obterRecentes($limite = 100)
+    public static function obterRecentes($limite = 100)
     {
         $params = [
             'limite' => $limite
@@ -94,7 +94,7 @@ class EmailLogs extends Model
      * @param int $limite Limite de registros
      * @return array Retorna um array com os logs
      */
-    public function obterPorTipo($tipo_log, $limite = 100)
+    public static function obterPorTipo($tipo_log, $limite = 100)
     {
         return self::select()
             ->where('tipo_log', $tipo_log)
@@ -112,7 +112,7 @@ class EmailLogs extends Model
      * @param string $data_fim Data final (Y-m-d)
      * @return array Retorna um array com os logs
      */
-    public function obterPorPeriodo($idsistema, $data_inicio, $data_fim)
+    public static function obterPorPeriodo($idsistema, $data_inicio, $data_fim)
     {
         $params = [
             'idsistema' => $idsistema,
@@ -132,7 +132,7 @@ class EmailLogs extends Model
      * @param int $dias Número de dias a manter
      * @return bool Retorna true se deletado com sucesso
      */
-    public function limparAntigos($dias = 90)
+    public static function limparAntigos($dias = 90)
     {
         $params = [
             'dias' => $dias

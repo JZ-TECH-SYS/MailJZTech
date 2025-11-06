@@ -51,7 +51,7 @@ class Emails extends Model
      * @param array $dados Dados do e-mail
      * @return int|false Retorna o ID do e-mail criado
      */
-    public function criar($dados)
+    public static function criar($dados)
     {
         return self::insert([
             'idsistema' => $dados['idsistema'],
@@ -75,7 +75,7 @@ class Emails extends Model
      * @param string|null $mensagemErro Mensagem de erro (se houver)
      * @return bool Retorna true se atualizado com sucesso
      */
-    public function atualizarStatus($idemail, $status, $mensagemErro = null)
+    public static function atualizarStatus($idemail, $status, $mensagemErro = null)
     {
         $dados = [
             'status' => $status,
@@ -98,7 +98,7 @@ class Emails extends Model
      * @param int $idsistema ID do sistema
      * @return int Retorna o total de e-mails
      */
-    public function contarPorSistema($idsistema)
+    public static function countBySystem($idsistema)
     {
         $result = self::select(['*'])
             ->where('idsistema', $idsistema)
@@ -114,7 +114,7 @@ class Emails extends Model
      * @param int $idsistema ID do sistema
      * @return array|false Retorna as estatísticas
      */
-    public function obterEstatisticas($idsistema)
+    public static function obterEstatisticas($idsistema)
     {
         $params = [
             'idsistema' => $idsistema
@@ -131,7 +131,7 @@ class Emails extends Model
      * @param int $idemail ID do e-mail
      * @return bool Retorna true se deletado com sucesso
      */
-    public function deletar($idemail)
+    public static function deletar($idemail)
     {
         return self::update(['status' => 'deletado'])
             ->where('idemail', $idemail)
