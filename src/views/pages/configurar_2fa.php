@@ -14,7 +14,12 @@
         <?php endif; ?>
 
         <?php if (empty($totp_habilitado)): ?>
-            <!-- Configuração de 2FA -->
+            <!-- Configuração de 2FA - Primeira Vez -->
+            <div class="alert alert-warning mb-4">
+                <strong><i class="fas fa-exclamation-triangle"></i> Atenção!</strong>
+                A autenticação de dois fatores é obrigatória para acessar o sistema. Configure agora para continuar.
+            </div>
+
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
@@ -89,8 +94,8 @@
                 <div class="card-body">
                     <p class="text-muted">Guarde estes códigos em um local seguro. Você pode usá-los para acessar sua conta se perder o acesso ao seu autenticador.</p>
 
-                    <div class="alert alert-warning">
-                        <strong><i class="fas fa-info-circle"></i> Importante:</strong> Cada código pode ser usado apenas uma vez. Guarde-os em local seguro!
+                    <div class="alert alert-danger">
+                        <strong><i class="fas fa-exclamation-circle"></i> Crítico:</strong> Cada código pode ser usado apenas uma vez. Guarde-os em local seguro! Se perder esses códigos e seu autenticador, você não conseguirá acessar sua conta.
                     </div>
 
                     <div class="bg-light p-3 rounded">
@@ -117,18 +122,23 @@
             </div>
 
         <?php else: ?>
-            <!-- 2FA Já Habilitado -->
-            <div class="card mb-4">
+            <!-- 2FA Já Habilitado - Sem Opção de Desabilitar -->
+            <div class="card">
                 <div class="card-header bg-success text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-check-circle"></i> 2FA Ativado
+                        <i class="fas fa-check-circle"></i> 2FA Ativado e Obrigatório
                     </h5>
                 </div>
                 <div class="card-body">
                     <p class="text-success">
                         <strong>Sua autenticação de dois fatores está ativa!</strong>
                     </p>
-                    <p class="text-muted">Você precisará inserir um código do seu autenticador cada vez que fizer login.</p>
+                    <p class="text-muted">A autenticação de dois fatores é <strong>obrigatória</strong> e você precisará inserir um código do seu autenticador cada vez que fizer login.</p>
+
+                    <div class="alert alert-warning mt-3">
+                        <strong><i class="fas fa-exclamation-triangle"></i> Importante:</strong> 
+                        A autenticação de dois fatores não pode ser desativada. Ela é obrigatória para proteger sua conta.
+                    </div>
 
                     <div class="alert alert-info">
                         <strong><i class="fas fa-info-circle"></i> Informação:</strong> 
@@ -137,46 +147,19 @@
                 </div>
             </div>
 
-            <!-- Opções de Gerenciamento -->
-            <div class="card">
+            <!-- Opção de Gerar Novos Códigos de Backup -->
+            <div class="card mt-4">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-cog"></i> Gerenciar 2FA
+                        <i class="fas fa-key"></i> Códigos de Backup
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="list-group">
-                        <a href="<?php echo $base; ?>/gerar-backup-codes" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1"><i class="fas fa-redo"></i> Gerar Novos Códigos de Backup</h6>
-                                    <p class="mb-0 text-muted small">Gere um novo conjunto de códigos de backup</p>
-                                </div>
-                                <i class="fas fa-chevron-right"></i>
-                            </div>
-                        </a>
-
-                        <a href="<?php echo $base; ?>/reconfigurare-2fa" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1"><i class="fas fa-sync"></i> Reconfigurare 2FA</h6>
-                                    <p class="mb-0 text-muted small">Desative e reative 2FA com um novo autenticador</p>
-                                </div>
-                                <i class="fas fa-chevron-right"></i>
-                            </div>
-                        </a>
-
-                        <a href="<?php echo $base; ?>/desabilitar-2fa" class="list-group-item list-group-item-action text-danger" 
-                           onclick="return confirm('Tem certeza que deseja desabilitar 2FA? Sua conta ficará menos segura.');">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1"><i class="fas fa-times-circle"></i> Desabilitar 2FA</h6>
-                                    <p class="mb-0 text-muted small">Desative a autenticação de dois fatores</p>
-                                </div>
-                                <i class="fas fa-chevron-right"></i>
-                            </div>
-                        </a>
-                    </div>
+                    <p class="text-muted">Se você perder acesso ao seu autenticador, poderá usar um dos seus códigos de backup para fazer login.</p>
+                    
+                    <a href="<?php echo $base; ?>/gerar-backup-codes" class="btn btn-primary">
+                        <i class="fas fa-redo"></i> Gerar Novos Códigos de Backup
+                    </a>
                 </div>
             </div>
         <?php endif; ?>
