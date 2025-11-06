@@ -84,21 +84,16 @@ class LoginController extends ctrl
 
     /**
      * Renderiza a página de configuração de 2FA
-     * GET /configurar-2fa
+     * GET /configurar-2fa (privado = true)
      */
     public function paginaConfigurar2FA()
     {
-        // Verifica se está logado
-        if (!$this->usuarioHandler->checkLogin()) {
-            $this->redirect('/');
-        }
-
         $this->render('configurar_2fa');
     }
 
     /**
      * Processa a confirmação de 2FA
-     * POST /confirmar-2fa
+     * POST /confirmar-2fa (privado = true)
      */
     public function confirmarDoisFatores()
     {
@@ -140,7 +135,7 @@ class LoginController extends ctrl
 
     /**
      * Realiza o logout do usuário
-     * GET /sair
+     * GET /sair (privado = true)
      */
     public function logout()
     {
