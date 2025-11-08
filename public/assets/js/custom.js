@@ -104,7 +104,7 @@ function formatDate(dateString) {
 }
 
 /**
- * Fazer requisição AJAX
+ * Fazer requisição AJAX com token Bearer
  */
 async function makeRequest(url, options = {}) {
     const defaultOptions = {
@@ -116,12 +116,29 @@ async function makeRequest(url, options = {}) {
     
     const finalOptions = { ...defaultOptions, ...options };
     
+    // Usar fetchComToken se tiver token disponível
+    const token = window.Auth?.obterToken?.() || localStorage.getItem('auth_token');
+    if (token) {
+        finalOptions.headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     try {
         const response = await fetch(url, finalOptions);
         const data = await response.json();
         
+        // Se 401, limpar token
+        if (response.status === 401) {
+            console.error('❌ Unauthorized - removendo token');
+            window.Auth?.removerToken?.();
+            localStorage.removeItem('auth_token');
+            // Redirecionar para login
+            if (!window.location.pathname.includes('login')) {
+                window.location.href = '/';
+            }
+        }
+        
         if (!response.ok) {
-            throw new Error(data.error || 'Erro na requisição');
+            throw new Error(data.error || data.result?.mensagem || 'Erro na requisição');
         }
         
         return data;
@@ -298,4 +315,61 @@ function throttle(func, limit) {
             setTimeout(() => inThrottle = false, limit);
         }
     };
+}
+
+/**
+ * Deletar sistema
+ */
+async function deletarSistema(idsistema, nomeSistema, base) {
+    if (!confirm(`Tem certeza que deseja deletar o sistema "${nomeSistema}"?\n\nEsta ação não pode ser desfeita.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetchComToken(`${base}/deletarSistema/${idsistema}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (!data.error && data.result) {
+            alert('✅ Sistema deletado com sucesso!');
+            window.location.reload();
+        } else {
+            alert('❌ ' + (data.result || 'Erro ao deletar sistema'));
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('❌ Erro ao deletar sistema: ' + error.message);
+    }
+}
+
+/**
+ * Regenerar chave de API
+ */
+async function regenerarChave(idsistema, base) {
+    if (!confirm('Tem certeza que deseja regenerar a chave de API?\n\nA chave anterior não funcionará mais!')) {
+        return;
+    }
+    
+    try {
+        const response = await fetchComToken(`${base}/regenerarChaveApi/${idsistema}`, {
+            method: 'POST',
+            body: JSON.stringify({})
+        });
+        
+        const data = await response.json();
+        
+        if (!data.error && data.result) {
+            // Mostrar modal com nova chave
+            document.getElementById('novaChaveInput').value = data.result.chave_api;
+            const modal = new bootstrap.Modal(document.getElementById('novaChaveModal'));
+            modal.show();
+        } else {
+            alert('❌ ' + (data.result || 'Erro ao regenerar chave'));
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('❌ Erro ao regenerar chave: ' + error.message);
+    }
 }

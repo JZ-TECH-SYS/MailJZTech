@@ -43,7 +43,7 @@
 
                         <div class="mb-3 form-check">
                             <input type="checkbox" class="form-check-input" id="ativo" name="ativo" value="1" 
-                                   <?php echo $sistema['ativo'] ? 'checked' : ''; ?>>
+                                   <?php echo $sistema['status'] === 'ativo' ? 'checked' : ''; ?>>
                             <label class="form-check-label" for="ativo">
                                 Sistema Ativo
                             </label>
@@ -152,26 +152,21 @@
                 ativo: document.getElementById('ativo').checked ? 1 : 0
             };
             
-            const response = await fetch(`<?php echo $base; ?>/atualizarSistema/${idsistema}`, {
+            const response = await fetchComToken(`<?php echo $base; ?>/atualizarSistema/${idsistema}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify(dados)
             });
             
             const data = await response.json();
             
-            if (data.mensagem) {
-                showToast('Sistema atualizado com sucesso!', 'success');
-                setTimeout(() => {
-                    window.location.href = '<?php echo $base; ?>/sistemas';
-                }, 1500);
+            if (!data.error && data.result) {
+                alert('✅ ' + (data.result.mensagem || 'Sistema atualizado com sucesso!'));
+                window.location.href = '<?php echo $base; ?>/sistemas';
             } else {
-                showToast(data.error || 'Erro ao atualizar sistema', 'danger');
+                alert('❌ ' + (data.result || 'Erro ao atualizar sistema'));
             }
         } catch (error) {
-            showToast('Erro ao conectar com o servidor', 'danger');
+            alert('❌ Erro ao conectar com o servidor: ' + error.message);
             console.error(error);
         } finally {
             btnAtualizar.disabled = false;

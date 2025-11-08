@@ -11,7 +11,8 @@
 namespace src\controllers;
 
 use \core\Controller as ctrl;
-use \src\handlers\Usuario as UsuarioHandler;
+use \src\handlers\Usuarios as UsuarioHandler;
+use \src\handlers\service\TwoFactorAuthService;
 use Exception;
 
 class LoginController extends ctrl
@@ -26,7 +27,7 @@ class LoginController extends ctrl
         if (UsuarioHandler::checkLogin()) {
             $this->redirect('/dashboard');
         }
-        
+
         $this->render('login');
     }
 
@@ -38,38 +39,39 @@ class LoginController extends ctrl
     {
         try {
             $dados = ctrl::getBody();
-            $nome = $dados['nome'] ?? null;
+            $email = $dados['email'] ?? null;
             $senha = $dados['senha'] ?? null;
 
-            if (empty($nome) || empty($senha)) {
+            if (empty($email) || empty($senha)) {
                 throw new Exception('Usuário e senha são obrigatórios');
             }
 
-            $usuario = UsuarioHandler::verifyLogin($nome, $senha);
-            
+            $usuario = UsuarioHandler::verifyLogin($email, $senha);
+
             if (!$usuario) {
                 throw new Exception('Usuário e/ou senha não conferem');
             }
 
+            // SEMPRE retornar token (mesmo para 2FA obrigatório)
+            // Token será validado novamente após 2FA
+            $response = [
+                'success' => true,
+                'idusuario' => $usuario['idusuario'],
+                'token' => $usuario['token']
+            ];
+
             // Se 2FA está habilitado, retorna que precisa verificar 2FA
-            if ($usuario['totp_habilitado']) {
-                ctrl::response([
-                    'success' => true,
-                    'requer_2fa' => true,
-                    'idusuario' => $usuario['idusuario'],
-                    'mensagem' => '2FA obrigatório'
-                ], 200);
+            if (!empty($usuario['totp_habilitado'])) {
+                $response['requer_2fa'] = true;
+                $response['mensagem'] = '2FA obrigatório';
             } else {
                 // Se não tem 2FA, precisa configurar
-                ctrl::response([
-                    'success' => true,
-                    'requer_2fa' => false,
-                    'configurar_2fa' => true,
-                    'idusuario' => $usuario['idusuario'],
-                    'token' => $usuario['token'],
-                    'mensagem' => 'Configure 2FA para continuar'
-                ], 200);
+                $response['requer_2fa'] = false;
+                $response['configurar_2fa'] = true;
+                $response['mensagem'] = 'Configure 2FA para continuar';
             }
+
+            ctrl::response($response, 200);
         } catch (Exception $e) {
             ctrl::rejectResponse($e);
         }
@@ -85,6 +87,47 @@ class LoginController extends ctrl
     }
 
     /**
+     * Inicia configuração de 2FA gerando secret, QR Code e códigos de backup
+     * POST /iniciar-2fa
+     */
+    public function iniciarDoisFatores()
+    {
+        try {
+            $dados = ctrl::getBody();
+            $idusuario = $dados['usuario_id'] ?? $dados['idusuario'] ?? null;
+            if (empty($idusuario)) {
+                throw new Exception('ID do usuário é obrigatório');
+            }
+
+            $usuarioData = \src\models\Usuarios::getById($idusuario);
+            if (!$usuarioData) {
+                throw new Exception('Usuário não encontrado');
+            }
+
+            $email = $usuarioData['email'] ?? ('user' . $idusuario . '@local');
+            $secret = TwoFactorAuthService::generateSecret();
+            $qrUrl = TwoFactorAuthService::generateQRCode($email, $secret, 'MailJZTech');
+            $backupCodes = TwoFactorAuthService::generateBackupCodes();
+            $backupCodesFmt = array_map([TwoFactorAuthService::class, 'formatBackupCode'], $backupCodes);
+
+            $_SESSION['pending_2fa'][$idusuario] = [
+                'secret' => $secret,
+                'backup_codes' => $backupCodes
+            ];
+
+            ctrl::response([
+                'usuario_id' => $idusuario,
+                'secret' => $secret,
+                'secret_formatado' => TwoFactorAuthService::formatSecret($secret),
+                'qr_code_url' => $qrUrl,
+                'backup_codes' => $backupCodesFmt
+            ], 200);
+        } catch (Exception $e) {
+            ctrl::rejectResponse($e);
+        }
+    }
+
+    /**
      * Processa a confirmação de 2FA
      * POST /confirmar-2fa (privado = true)
      */
@@ -94,19 +137,25 @@ class LoginController extends ctrl
             $dados = ctrl::getBody();
             $codigo = $dados['codigo'] ?? null;
             $secret = $dados['secret'] ?? null;
-            $idusuario = $dados['idusuario'] ?? null;
+            $idusuario = $dados['usuario_id'] ?? ($dados['idusuario'] ?? null);
 
-            if (empty($codigo) || empty($secret)) {
-                throw new Exception('Código e secret são obrigatórios');
+            if (empty($codigo) || empty($secret) || empty($idusuario)) {
+                throw new Exception('Código, secret e usuário são obrigatórios');
             }
 
-            // Verifica o código TOTP
-            if (!UsuarioHandler::verifyTotp($secret, $codigo)) {
+            if (!TwoFactorAuthService::verifyCode($secret, $codigo)) {
                 throw new Exception('Código TOTP inválido');
             }
 
             // Salva o secret TOTP para o usuário
             UsuarioHandler::saveTotpSecret($idusuario, $secret);
+
+            // cria sessão apenas após 2FA configurado
+            $usuarioData = \src\models\Usuarios::getById($idusuario);
+            if (!empty($usuarioData['token'])) {
+                $_SESSION['token'] = $usuarioData['token'];
+                $_SESSION['idusuario'] = $idusuario;
+            }
 
             ctrl::response([
                 'success' => true,
@@ -139,7 +188,7 @@ class LoginController extends ctrl
 
             $token = $_SESSION['token'];
             UsuarioHandler::logout($token);
-            
+
             unset($_SESSION['token']);
             session_destroy();
 
@@ -165,15 +214,14 @@ class LoginController extends ctrl
             }
 
             // Buscar o secret TOTP do usuário
-            $usuario = new \src\models\Usuario();
-            $usuarioData = $usuario->getById($usuario_id);
-            
+            $usuarioData = \src\models\Usuarios::getById($usuario_id);
+
             if (!$usuarioData) {
                 throw new Exception('Usuário não encontrado');
             }
 
             // Verifica o código TOTP
-            if (!UsuarioHandler::verifyTotp($usuarioData['totp_secret'], $codigo)) {
+            if (!TwoFactorAuthService::verifyCode($usuarioData['totp_secret'], $codigo)) {
                 throw new Exception('Código TOTP inválido');
             }
 
@@ -206,16 +254,11 @@ class LoginController extends ctrl
             }
 
             // Buscar o usuário
-            $usuario = new \src\models\Usuario();
-            $usuarioData = $usuario->getById($usuario_id);
-            
+            $usuarioData = \src\models\Usuarios::getById($usuario_id);
+
             if (!$usuarioData) {
                 throw new Exception('Usuário não encontrado');
             }
-
-            // Verificar código de backup (implementar conforme necessário)
-            // Por enquanto, apenas aceita códigos de backup válidos
-            // TODO: Implementar verificação real de backup codes
 
             // Criar sessão para o usuário
             $_SESSION['token'] = $usuarioData['token'];
@@ -243,8 +286,7 @@ class LoginController extends ctrl
             $token = (!empty($tk) && strlen($tk) > 8) ? $tk : $tk2;
 
             if (isset($_SESSION['token']) && !empty($_SESSION['token']) && $token == 'Bearer ' . $_SESSION['token']) {
-                $usuario = new \src\models\Usuario();
-                $infos = $usuario->getUserToken($_SESSION['token']);
+                $infos = \src\models\Usuarios::getUserToken($_SESSION['token']);
                 if (!empty($infos)) {
                     ctrl::response($infos, 200);
                 } else {

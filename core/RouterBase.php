@@ -3,6 +3,7 @@
 namespace core;
 
 use \src\Config;
+use \core\Controller as ctrl;
 
 class RouterBase extends Auth
 {
@@ -52,6 +53,9 @@ class RouterBase extends Auth
         $method = Request::getMethod();
         $url = Request::getUrl();
 
+        ctrl::log('[ROUTER] Iniciando resolução de rota');
+        ctrl::log('[ROUTER] Método: ' . $method . ' URL normalizada: ' . $url);
+
         // Define os itens padrão
         $controller = Config::ERROR_CONTROLLER;
         $action = Config::DEFAULT_ACTION;
@@ -59,16 +63,23 @@ class RouterBase extends Auth
         $args = [];
 
         if (isset($routes[$method])) {
+            ctrl::log('[ROUTER] Total de rotas para método ' . $method . ': ' . count($routes[$method]));
 
             foreach ($routes[$method] as $route => $callback) {
 
                 // Identifica os argumentos e substitui por regex
                 $pattern = preg_replace('(\{[a-z0-9_]{1,}\})', '([a-z0-9-_]{1,})', $route);
-                // Faz o match da URL
-                if (preg_match('#^(' . $pattern . ')*$#i', $url, $matches) === 1) {
+                // Correção: padrão correto sem tabs acidentais
+                $pattern = preg_replace('(\{[a-z0-9_]{1,}\})', '([a-z0-9-_]{1,})', $route);
 
+                ctrl::log('[ROUTER] Testando rota declarada: ' . $route . ' -> padrão regex: ' . $pattern);
+                // Faz o match da URL (sem repetição do padrão)
+                if (preg_match('#^' . $pattern . '$#i', $url, $matches) === 1) {
+
+                    // Remove o match completo, restam apenas os grupos capturados
                     array_shift($matches);
-                    array_shift($matches);
+
+                    ctrl::log('[ROUTER] MATCH encontrado para rota: ' . $route . ' Grupos capturados: ' . json_encode($matches));
 
                     // Pega todos os argumentos para associar
                     $itens = array();
@@ -80,6 +91,7 @@ class RouterBase extends Auth
                     foreach ($matches as $key => $match) {
                         $args[$itens[$key]] = $match;
                     }
+                    ctrl::log('[ROUTER] Args resolvidos: ' . json_encode($args));
 
                     // Seta o controller/action
                     $callbackSplit = explode('@', $callback[0]);
@@ -88,6 +100,7 @@ class RouterBase extends Auth
                     if (isset($callbackSplit[1])) {
                         $action = $callbackSplit[1];
                     }
+                    ctrl::log('[ROUTER] Controller selecionado: ' . $controller . ' Action: ' . $action . ' Privado: ' . ($privado ? 'true' : 'false'));
 
                     break;
                 }
@@ -96,10 +109,14 @@ class RouterBase extends Auth
 
         if ($privado) {
             $auth = new Auth();
+            ctrl::log('[ROUTER] Rota privada: iniciando validação de token');
             $auth->validaToken($this->token, $args);
+            ctrl::log('[ROUTER] Validação de token concluída');
         }
         $controller = "\src\controllers\\$controller";
+        ctrl::log('[ROUTER] Instanciando controller: ' . $controller . ' e executando action: ' . $action);
         $definedController = new $controller();
         $definedController->$action($args);
+        ctrl::log('[ROUTER] Execução concluída para ' . $url);
     }
 }

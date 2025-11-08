@@ -23,6 +23,9 @@ class Config
     const SMTP_PORT = SMTP_PORT;
     const SMTP_HOST = SMTP_HOST;
 
+    const USER_MASTER_DB = USER_MASTER_DB;
+    const PASS_MASTER_DB = PASS_MASTER_DB;
+
     const ERROR_CONTROLLER = 'ErrorController';
     const DEFAULT_ACTION = 'index';
 }

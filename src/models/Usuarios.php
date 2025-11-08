@@ -7,13 +7,13 @@ use \core\Model;
 use PDO;
 
 /**
- * Classe modelo para a tabela 'usuarios' do banco de dados.
+ * Classe modelo para a tabela 'Usuarios' do banco de dados.
  * Gerencia dados de autenticação e 2FA.
  *
  * @author MailJZTech
  * @date 2025-01-01
  */
-class Usuario extends Model
+class Usuarios extends Model
 {
     /**
      * Busca informações do usuário com base no token fornecido.
@@ -61,13 +61,13 @@ class Usuario extends Model
      * Atualiza o token de autenticação para um usuário específico.
      *
      * @param string $token O novo token de autenticação
-     * @param string $nome O nome de usuário
+     * @param string $email O email do usuário
      * @return bool Retorna true se a atualização foi bem-sucedida
      */
-    public static function saveToken($token, $nome)
+    public static function saveToken($token, $email)
     {
         return self::update(['token' => $token, 'ultimo_acesso' => date('Y-m-d H:i:s')])
-            ->where('nome', $nome)
+            ->where('email', $email)
             ->execute();
     }
 

@@ -1,6 +1,133 @@
-# MailJZTech - Serviço de Envio de E-mail
+# MailJZTech – Serviço de Envio de E-mail com API REST
 
-Um microservice robusto de envio de e-mails com suporte a múltiplos sistemas/clientes, anexos, cópia (CC/BCC), histórico de envios e autenticação de dois fatores (2FA) obrigatória.
+Plataforma robusta de envio de e-mails com painel web, API REST, autenticação por token, 2FA obrigatório e histórico completo de operações.
+
+## 🚀 Quick Start
+
+```bash
+# 1. Clonar
+git clone https://github.com/JZ-TECH-SYS/MailJZTech.git
+cd MailJZTech
+
+# 2. Instalar dependências
+composer install
+
+# 3. Configurar .env (ver docs/CONFIGURACAO_GITHUB_SECRETS.md)
+cp .env.example .env
+# Editar .env com suas credenciais
+
+# 4. Criar banco de dados
+mysql -u root -p < SQL/DDL_MAILJZTECH.sql
+
+# 5. Iniciar servidor
+php -S localhost:8050 -t public
+```
+
+Acesse: **http://localhost:8050**
+
+## 📚 Documentação
+
+Toda documentação está centralizada em `docs/`:
+
+| Documento | Conteúdo |
+|-----------|----------|
+| [docs/VISAO_GERAL.md](docs/VISAO_GERAL.md) | Arquitetura, fluxos, padrões e convenções |
+| [docs/REFERENCIA_API.md](docs/REFERENCIA_API.md) | Endpoints e exemplos de requisição (cURL, JS, PowerShell) |
+| [docs/GUIA_IMPLANTACAO.md](docs/GUIA_IMPLANTACAO.md) | Setup, produção, backup e observabilidade |
+| [docs/CONFIGURACAO_GITHUB_SECRETS.md](docs/CONFIGURACAO_GITHUB_SECRETS.md) | Variáveis de ambiente e CI/CD |
+
+## ✨ Características
+
+- ✅ **API REST** com autenticação por Bearer Token
+- ✅ **2FA obrigatório** (TOTP com Authenticator app)
+- ✅ **Envio de e-mails** (HTML, texto, CC/BCC, anexos)
+- ✅ **Dashboard responsivo** para gerenciamento
+- ✅ **Histórico completo** de envios e logs
+- ✅ **Múltiplos sistemas** com chave API individual
+- ✅ **CI/CD automático** (GitHub Actions → FTP)
+
+## 🏗️ Estrutura
+
+```
+core/               # Framework base (Router, Controller, Model, Auth)
+src/
+  ├── controllers/  # Lógica de requisição
+  ├── models/       # Acesso ao banco (Hydrahon Query Builder)
+  ├── handlers/     # Regras de negócio
+  ├── views/        # Templates PHP + Bootstrap
+  └── routes.php    # Definição de rotas
+public/
+  └── assets/       # CSS, JS (Bootstrap, Charts)
+SQL/                # Scripts DDL e queries complexas
+docs/               # Documentação (centralizada)
+```
+
+## 🔐 Autenticação
+
+- **Rotas privadas**: Exigem `Authorization: Bearer <token>` no header
+- **2FA**: Obrigatório no painel web (fluxo TOTP)
+- **Session**: Mantida via cookie de sessão
+- **Configuração**: Tokens via `.env` ou banco de dados
+
+## 💡 Exemplo de Requisição
+
+```bash
+# Enviar e-mail
+curl -X POST http://localhost:8050/sendEmail \
+  -H "Authorization: Bearer <seu-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "destinatario": "usuario@example.com",
+    "assunto": "Olá!",
+    "corpo_html": "<h1>Bem-vindo!</h1>"
+  }'
+```
+
+Ver mais exemplos em [docs/REFERENCIA_API.md](docs/REFERENCIA_API.md).
+
+## 🛠️ Desenvolvimento
+
+1. **Controllers**: `src/controllers/` com try/catch
+2. **Models**: Herdam de `core\Model` (Hydrahon)
+3. **Handlers**: Regras de negócio em `src/handlers/`
+4. **Services**: E-mail, 2FA em `src/handlers/service/`
+5. **Respostas**: Padrão `{ result: <dados>, error: false|true }`
+
+## 📋 Variáveis de Ambiente
+
+Configuradas em `.env` ou via **GitHub Secrets** (ver [docs/CONFIGURACAO_GITHUB_SECRETS.md](docs/CONFIGURACAO_GITHUB_SECRETS.md)):
+
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=senha
+SMTP_HOST=smtp.seu-dominio.com
+TOKEN_JV=seu-token-fixo
+```
+
+## 🚀 Deploy
+
+O projeto usa **GitHub Actions** para deploy automático. Cada push para `main`:
+
+1. Gera `.env` dinamicamente com os secrets
+2. Faz upload via FTP para o servidor
+3. Exclui `.git` e `.github` do deploy
+
+Veja: [docs/CONFIGURACAO_GITHUB_SECRETS.md](docs/CONFIGURACAO_GITHUB_SECRETS.md)
+
+## 📞 Suporte
+
+- **Documentação integrada**: Dashboard > Documentação
+- **Contato**: contato@jztech.com.br
+- **Issues**: GitHub Repository
+
+## 📄 Licença
+
+Propriedade da **JZ Tech Systems**
+
+---
+
+**Versão**: 1.0.1 | **Data**: Novembro 2025 | **Desenvolvido com ❤️ por JZ Tech Systems**
 
 ## Características
 
@@ -297,10 +424,13 @@ O projeto segue o padrão **PMVC** (Presentation-Model-View-Controller):
 
 ## Documentação
 
-- **[SETUP.md](SETUP.md)** - Guia detalhado de instalação
-- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** - Documentação completa da API
-- **[2FA_IMPLEMENTATION.md](2FA_IMPLEMENTATION.md)** - Detalhes técnicos de 2FA
-- **Dashboard** - Documentação integrada no sistema
+Documentação consolidada (PT-BR) na pasta `docs/`:
+
+- [docs/VISAO_GERAL.md](docs/VISAO_GERAL.md): visão de arquitetura e fluxos.
+- [docs/REFERENCIA_API.md](docs/REFERENCIA_API.md): endpoints e exemplos de requisição.
+- [docs/GUIA_IMPLANTACAO.md](docs/GUIA_IMPLANTACAO.md): instalação e práticas de produção.
+
+Arquivos antigos como `API_DOCUMENTATION.md`, `SETUP.md`, `PRODUCTION_GUIDE.md`, `INFRASTRUCTURE.md`, `QUICK_START.md` podem ser descontinuados após validação.
 
 ## Licença
 
@@ -314,4 +444,4 @@ Para suporte, entre em contato com: **contato@jztech.com.br**
 
 **Desenvolvido com ❤️ por JZ Tech Systems**
 
-Versão: 1.0.0 | Data: Novembro 2025
+Versão: 1.0.1 | Data: Novembro 2025

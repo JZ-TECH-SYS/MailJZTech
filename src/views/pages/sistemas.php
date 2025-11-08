@@ -12,84 +12,32 @@
     </div>
 </div>
 
-<?php if (!empty($mensagem)): ?>
-    <div class="alert alert-<?php echo $tipo_mensagem ?? 'info'; ?> alert-dismissible fade show" role="alert">
-        <?php echo $mensagem; ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0" id="tabelaSistemas">
+            <thead>
+                <tr>
+                    <th>Nome do Sistema</th>
+                    <th>Remetente</th>
+                    <th>E-mail</th>
+                    <th>Status</th>
+                    <th>Data de Criação</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="6" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Carregando sistemas...</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
-<?php endif; ?>
-
-<?php if (!empty($sistemas)): ?>
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>Nome do Sistema</th>
-                        <th>Remetente</th>
-                        <th>E-mail</th>
-                        <th>Status</th>
-                        <th>Data de Criação</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($sistemas as $sistema): ?>
-                        <tr>
-                            <td><strong><?php echo htmlspecialchars($sistema['nome']); ?></strong></td>
-                            <td><?php echo htmlspecialchars($sistema['nome_remetente']); ?></td>
-                            <td><code><?php echo htmlspecialchars($sistema['email_remetente']); ?></code></td>
-                            <td>
-                                <?php if ($sistema['ativo']): ?>
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-check-circle"></i> Ativo
-                                    </span>
-                                <?php else: ?>
-                                    <span class="badge bg-danger">
-                                        <i class="fas fa-times-circle"></i> Inativo
-                                    </span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <small class="text-muted">
-                                    <?php echo date('d/m/Y H:i', strtotime($sistema['data_criacao'])); ?>
-                                </small>
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-outline-primary" 
-                                            onclick="showChaveApiModal('<?php echo htmlspecialchars($sistema['idsistema']); ?>', '<?php echo htmlspecialchars($sistema['chave_api']); ?>', '<?php echo htmlspecialchars($sistema['nome']); ?>')"
-                                            data-bs-toggle="tooltip" title="Ver Chave de API">
-                                        <i class="fas fa-key"></i> Chave
-                                    </button>
-                                    <a href="<?php echo $base; ?>/editar-sistema?id=<?php echo $sistema['idsistema']; ?>" 
-                                       class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Editar Sistema">
-                                        <i class="fas fa-edit"></i> Editar
-                                    </a>
-                                    <button type="button" class="btn btn-outline-danger" 
-                                            onclick="deletarSistema(<?php echo $sistema['idsistema']; ?>, '<?php echo htmlspecialchars($sistema['nome']); ?>', '<?php echo $base; ?>')"
-                                            data-bs-toggle="tooltip" title="Deletar Sistema">
-                                        <i class="fas fa-trash"></i> Deletar
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-<?php else: ?>
-    <div class="card text-center py-5">
-        <div class="empty-state">
-            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-            <p class="text-muted mb-3">Nenhum sistema cadastrado ainda.</p>
-            <a href="<?php echo $base; ?>/criar-sistema" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Criar Primeiro Sistema
-            </a>
-        </div>
-    </div>
-<?php endif; ?>
+</div>
 
 <!-- Modal para exibir Chave de API -->
 <div class="modal fade" id="chaveApiModal" tabindex="-1">
@@ -127,6 +75,84 @@
 </div>
 
 <script>
+    // Carregar sistemas via AJAX
+    async function carregarSistemas() {
+        try {
+            const response = await fetchComToken('<?php echo $base; ?>/listarSistemas');
+            const data = await response.json();
+            
+            const tbody = document.querySelector('#tabelaSistemas tbody');
+            
+            if (!data.error && data.result && data.result.length > 0) {
+                const sistemas = data.result;
+                tbody.innerHTML = sistemas.map(sistema => `
+                    <tr>
+                        <td><strong>${escapeHtml(sistema.nome)}</strong></td>
+                        <td>${escapeHtml(sistema.nome_remetente)}</td>
+                        <td><code>${escapeHtml(sistema.email_remetente)}</code></td>
+                        <td>
+                            ${sistema.status == 'ativo' ? 
+                                '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Ativo</span>' : 
+                                '<span class="badge badge-danger"><i class="fas fa-times-circle"></i> Inativo</span>'
+                            }
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                ${formatarData(sistema.data_criacao)}
+                            </small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary" 
+                                        onclick="showChaveApiModal('${sistema.idsistema}', '${escapeHtml(sistema.chave_api)}', '${escapeHtml(sistema.nome)}')"
+                                        title="Ver Chave de API">
+                                    <i class="fas fa-key"></i> Chave
+                                </button>
+                                <a href="<?php echo $base; ?>/editar-sistema/${sistema.idsistema}" 
+                                   class="btn btn-outline-secondary" title="Editar Sistema">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="deletarSistema(${sistema.idsistema}, '${escapeHtml(sistema.nome)}', '<?php echo $base; ?>')"
+                                        title="Deletar Sistema">
+                                    <i class="fas fa-trash"></i> Deletar
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                <p class="text-muted mb-3">Nenhum sistema cadastrado ainda.</p>
+                                <a href="<?php echo $base; ?>/criar-sistema" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Criar Primeiro Sistema
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        } catch (error) {
+            console.error('Erro ao carregar sistemas:', error);
+            const tbody = document.querySelector('#tabelaSistemas tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        <i class="fas fa-times-circle text-danger fa-3x mb-3"></i>
+                        <p class="text-danger">Erro ao carregar sistemas: ${error.message}</p>
+                        <button class="btn btn-primary" onclick="carregarSistemas()">
+                            <i class="fas fa-sync"></i> Tentar Novamente
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
     function showChaveApiModal(idsistema, chaveApi, nomeSistema) {
         document.getElementById('sistemaNome').textContent = nomeSistema;
         document.getElementById('chaveApiInput').value = chaveApi;
@@ -139,6 +165,32 @@
         const button = event.target.closest('button');
         copyToClipboard(chaveInput.value, button);
     }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text?.toString().replace(/[&<>"']/g, m => map[m]) || '';
+    }
+
+    function formatarData(dataString) {
+        if (!dataString) return 'N/A';
+        const data = new Date(dataString);
+        return data.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    // Carregar ao iniciar a página
+    document.addEventListener('DOMContentLoaded', carregarSistemas);
 </script>
 
 <?php $render('footer'); ?>

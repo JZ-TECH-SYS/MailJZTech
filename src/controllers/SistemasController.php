@@ -5,6 +5,7 @@ namespace src\controllers;
 use core\Controller as ctrl;
 use Exception;
 use src\models\Sistemas as SistemasModel;
+use src\Config;
 
 /**
  * SistemasController - Responsável por gerenciar sistemas/clientes da API
@@ -20,9 +21,6 @@ class SistemasController extends ctrl
     public function listarSistemas()
     {
         try {
-            // Validar autenticação (para admin)
-            $this->validarAutenticacao();
-
             $sistemas = SistemasModel::getAll();
             ctrl::response($sistemas, 200);
 
@@ -39,8 +37,6 @@ class SistemasController extends ctrl
     public function obterSistema()
     {
         try {
-            $this->validarAutenticacao();
-
             $idsistema = $_GET['idsistema'] ?? null;
             if (!$idsistema) {
                 throw new Exception('ID do sistema não fornecido');
@@ -74,8 +70,6 @@ class SistemasController extends ctrl
     public function criarSistema()
     {
         try {
-            $this->validarAutenticacao();
-
             $dados = ctrl::getBody();
             ctrl::verificarCamposVazios($dados, ['nome', 'nome_remetente']);
 
@@ -125,8 +119,6 @@ class SistemasController extends ctrl
     public function atualizarSistema($idsistema)
     {
         try {
-            $this->validarAutenticacao();
-
             $dados = ctrl::getBody();
 
             if (!$idsistema) {
@@ -175,8 +167,6 @@ class SistemasController extends ctrl
     public function deletarSistema($idsistema)
     {
         try {
-            $this->validarAutenticacao();
-
             if (!$idsistema) {
                 throw new Exception('ID do sistema não fornecido');
             }
@@ -213,8 +203,6 @@ class SistemasController extends ctrl
     public function regenerarChaveApi($idsistema)
     {
         try {
-            $this->validarAutenticacao();
-
             if (!$idsistema) {
                 throw new Exception('ID do sistema não fornecido');
             }
@@ -263,28 +251,32 @@ class SistemasController extends ctrl
      * Renderiza a página de edição de sistema
      * GET /editar-sistema/{idsistema}
      */
-    public function paginaEditar()
+    public function paginaEditar($args = [])
     {
-        $idsistema = $_GET['idsistema'] ?? null;
-        if (!$idsistema) {
-            $this->redirect('/sistemas');
+        try {
+            $idsistema = $args['idsistema'] ?? null;
+            
+            if (!$idsistema) {
+                // Redireciona para a lista se não tiver ID
+                return self::redirect('/sistemas');
+            }
+            
+            // Verifica se o sistema existe
+            $sistema = SistemasModel::getById($idsistema);
+            if (!$sistema) {
+                return self::redirect('/sistemas');
+            }
+            
+            // Passa o sistema completo para a view (compatível com o template atual)
+            
+            $this->render('editar_sistema', [
+                'idsistema' => $idsistema,
+                'sistema' => $sistema
+            ]);
+            
+        } catch (Exception $e) {
+            ctrl::log('Erro ao carregar página de edição: ' . $e->getMessage());
+            return self::redirect('/sistemas');
         }
-        $this->render('editar_sistema');
-    }
-
-    /**
-     * Valida a autenticação do usuário
-     * Por enquanto, apenas verifica se há uma sessão ativa
-     * Você pode implementar validação mais robusta aqui
-     */
-    private function validarAutenticacao()
-    {
-        // Verificar se há sessão ativa
-        if (!isset($_SESSION['empresa']) || empty($_SESSION['empresa'])) {
-            throw new Exception('Você precisa estar logado para acessar este recurso');
-        }
-
-        // Você pode adicionar validação de permissões aqui
-        // Por exemplo, verificar se o usuário é admin
     }
 }

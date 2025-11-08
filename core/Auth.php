@@ -3,34 +3,39 @@
 namespace core;
 
 use \core\Controller as ctrl;
-use \src\models\Users;
-use \src\handlers\UserHandlers;
-use \src\Config;
+use \src\models\Usuarios as Users;
+use \src\handlers\Usuarios as UserHandlers;
 
 class Auth extends ctrl
 {
     public  function validaToken($token, $args)
     {
-        if(in_array($token, Config::TOKEN_JV)){
-            //token fixo no env valido pra todas chamadas
-            return;
-        }
-    
-        $check = new UserHandlers();
-        if (!$token || empty($_SESSION['token']) || !$check->checkLogin()) {
-            self::VALIDATION();
+        // Para rotas de VIEW (navegação normal), aceita apenas sessão válida
+        // Para rotas de API, exige Bearer token
+        
+        // Se tem sessão válida e usuário está logado, permite acesso
+        if (!empty($_SESSION['token']) && UserHandlers::checkLogin()) {
+            return; // Autorizado
         }
         
-        $idempresa = $this->verificarEmpresa($args);
-        $authHeaderParts = explode(' ', $token);
-        $token = $authHeaderParts[1];
-        $autorization = Users::select(['token', 'idempresa'])->where('token', $token)->one();
-        
-        if (empty($autorization) ) {
-            self::VALIDATION();
-        }else if ($idempresa != null && $autorization['idempresa'] != $idempresa ){
-            self::VALIDATION();
+        // Se não tem sessão, tenta validar por Bearer token (APIs)
+        if ($token) {
+            $authHeaderParts = explode(' ', $token);
+            if (count($authHeaderParts) === 2) {
+                $tokenValue = $authHeaderParts[1];
+                $autorization = Users::select(['token', 'idempresa'])->where('token', $tokenValue)->one();
+                
+                if (!empty($autorization)) {
+                    $idempresa = $this->verificarEmpresa($args);
+                    if ($idempresa == null || $autorization['idempresa'] == $idempresa) {
+                        return; // Autorizado
+                    }
+                }
+            }
         }
+        
+        // Se chegou aqui, não autorizado
+        self::VALIDATION();
     }
 
     public function verificarEmpresa($args)
@@ -50,6 +55,6 @@ class Auth extends ctrl
 
     public static function VALIDATION()
     {
-        ctrl::response('Sem permissão/token não Informado!/token inválido', 401);
+        ctrl::redirect('login');
     }
 }

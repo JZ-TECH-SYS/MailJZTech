@@ -36,7 +36,7 @@ class Sistemas extends Model
     {
         return self::select()
             ->where('idsistema', $idsistema)
-            ->where('status', 'ativo')
+            ->where('status', ' ')
             ->one();
     }
 

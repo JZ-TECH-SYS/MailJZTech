@@ -15,6 +15,14 @@ use core\Database;
 class EmailLogs extends Model
 {
     /**
+     * Sobrescreve o nome da tabela para usar underscores
+     */
+    public static function getTableName()
+    {
+        return 'emails_logs';
+    }
+
+    /**
      * Cria um novo log
      *
      * @param int|null $idemail ID do e-mail

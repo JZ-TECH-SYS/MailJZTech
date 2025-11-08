@@ -13,6 +13,9 @@
     
     <!-- Font Awesome (opcional) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Auth JS (Token Manager) -->
+    <script src="<?php echo $base; ?>/assets/js/auth.js"></script>
 </head>
 <body>
     <header class="bg-gradient">
@@ -22,7 +25,7 @@
         </div>
     </header>
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="<?php echo $base; ?>/">
                 <strong>MailJZTech</strong>

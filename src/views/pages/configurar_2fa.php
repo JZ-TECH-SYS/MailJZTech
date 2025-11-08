@@ -66,8 +66,8 @@
                     <h6 class="mt-4">Verificar Código</h6>
                     <p class="text-muted">Insira o código de 6 dígitos do seu aplicativo autenticador para confirmar:</p>
 
-                    <form method="POST" action="<?php echo $base; ?>/confirmar-2fa">
-                        <input type="hidden" name="secret" value="<?php echo htmlspecialchars($secret ?? ''); ?>">
+                    <form id="formConfirmar2FA">
+                        <input type="hidden" id="secret" value="<?php echo htmlspecialchars($secret ?? ''); ?>">
 
                         <div class="mb-3">
                             <label for="codigo" class="form-label">Código de Verificação</label>
@@ -77,13 +77,12 @@
                             <small class="form-text text-muted">Insira os 6 dígitos do seu autenticador</small>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100">
+                        <button type="submit" class="btn btn-primary w-100" id="btnConfirmar">
                             <i class="fas fa-check"></i> Verificar e Ativar 2FA
                         </button>
                     </form>
                 </div>
             </div>
-
             <!-- Códigos de Backup -->
             <div class="card">
                 <div class="card-header bg-warning text-dark">
@@ -204,6 +203,45 @@
             codigoInput.addEventListener('input', function(e) {
                 this.value = this.value.replace(/[^0-9]/g, '');
             });
+        }
+    });
+
+    // Submit do formulário de confirmação 2FA
+    document.getElementById('formConfirmar2FA')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const btn = document.getElementById('btnConfirmar');
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+        
+        try {
+            const dados = {
+                secret: document.getElementById('secret').value,
+                codigo: document.getElementById('codigo').value
+            };
+            
+            const response = await fetchComToken('<?php echo $base; ?>/confirmar-2fa', {
+                method: 'POST',
+                body: JSON.stringify(dados)
+            });
+            
+            const data = await response.json();
+            
+            if (!data.error && data.result) {
+                alert('✅ 2FA ativado com sucesso!');
+                window.location.href = '<?php echo $base; ?>/dashboard';
+            } else {
+                alert('❌ ' + (data.result || 'Código inválido. Tente novamente.'));
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                document.getElementById('codigo').value = '';
+                document.getElementById('codigo').focus();
+            }
+        } catch (error) {
+            alert('❌ Erro: ' + error.message);
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
         }
     });
 </script>

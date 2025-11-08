@@ -62,7 +62,7 @@ class EmailService
             $mail->SMTPAuth  = true;
             $mail->Username  = Config::EMAIL_API;
             $mail->Password  = Config::SENHA_EMAIL_API;
-            $mail->SMTPSecure= 'tls';
+            $mail->SMTPSecure= 'ssl';
             $mail->Port      = Config::SMTP_PORT;
 
             // Configuração do remetente - sempre contato@jztech.com.br

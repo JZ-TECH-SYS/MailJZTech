@@ -20,8 +20,8 @@
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="<?php echo $base; ?>/verificar-2fa" id="form2fa">
-                    <input type="hidden" name="usuario_id" value="<?php echo htmlspecialchars($usuario_id ?? ''); ?>">
+                <form id="form2fa">
+                    <input type="hidden" id="usuario_id" value="<?php echo htmlspecialchars($usuario_id ?? ''); ?>">
 
                     <div class="mb-4">
                         <label for="codigo_totp" class="form-label">
@@ -35,7 +35,7 @@
                         </small>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100 btn-lg mb-3">
+                    <button type="submit" class="btn btn-primary w-100 btn-lg mb-3" id="btnVerificar">
                         <i class="fas fa-check"></i> Verificar Código
                     </button>
                 </form>
@@ -46,8 +46,8 @@
                     <summary class="text-muted cursor-pointer">
                         <i class="fas fa-key"></i> Usar Código de Backup
                     </summary>
-                    <form method="POST" action="<?php echo $base; ?>/verificar-2fa-backup" class="mt-3">
-                        <input type="hidden" name="usuario_id" value="<?php echo htmlspecialchars($usuario_id ?? ''); ?>">
+                    <form id="formBackup" class="mt-3">
+                        <input type="hidden" id="usuario_id_backup" value="<?php echo htmlspecialchars($usuario_id ?? ''); ?>">
                         <div class="mb-3">
                             <label for="codigo_backup" class="form-label">Código de Backup</label>
                             <input type="text" class="form-control" id="codigo_backup" name="codigo_backup" 
@@ -56,7 +56,7 @@
                                 Insira um dos seus códigos de backup (formato: XXXX-XXXX)
                             </small>
                         </div>
-                        <button type="submit" class="btn btn-outline-secondary w-100">
+                        <button type="submit" class="btn btn-outline-secondary w-100" id="btnBackup">
                             <i class="fas fa-key"></i> Verificar Código de Backup
                         </button>
                     </form>
@@ -99,11 +99,85 @@
         this.value = this.value.replace(/[^0-9\-]/g, '').toUpperCase();
     });
 
-    // Auto-submit quando tiver 6 dígitos
-    document.getElementById('codigo_totp').addEventListener('input', function(e) {
-        if (this.value.length === 6) {
-            // Opcional: auto-submit após 1 segundo
-            // setTimeout(() => document.getElementById('form2fa').submit(), 1000);
+    // Formulário TOTP
+    document.getElementById('form2fa').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const btn = document.getElementById('btnVerificar');
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+        
+        try {
+            const dados = {
+                codigo_totp: document.getElementById('codigo_totp').value,
+                usuario_id: document.getElementById('usuario_id').value
+            };
+            
+            const response = await fetch('<?php echo $base; ?>/verificar-2fa', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dados)
+            });
+            
+            const data = await response.json();
+            
+            if (!data.error && data.result) {
+                window.location.href = '<?php echo $base; ?>/dashboard';
+            } else {
+                alert('❌ ' + (data.result || 'Código inválido'));
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                document.getElementById('codigo_totp').value = '';
+                document.getElementById('codigo_totp').focus();
+            }
+        } catch (error) {
+            alert('❌ Erro: ' + error.message);
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }
+    });
+
+    // Formulário Backup
+    document.getElementById('formBackup').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const btn = document.getElementById('btnBackup');
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+        
+        try {
+            const dados = {
+                codigo_backup: document.getElementById('codigo_backup').value,
+                usuario_id: document.getElementById('usuario_id_backup').value
+            };
+            
+            const response = await fetch('<?php echo $base; ?>/verificar-2fa-backup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dados)
+            });
+            
+            const data = await response.json();
+            
+            if (!data.error && data.result) {
+                window.location.href = '<?php echo $base; ?>/dashboard';
+            } else {
+                alert('❌ ' + (data.result || 'Código de backup inválido'));
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                document.getElementById('codigo_backup').value = '';
+                document.getElementById('codigo_backup').focus();
+            }
+        } catch (error) {
+            alert('❌ Erro: ' + error.message);
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
         }
     });
 </script>

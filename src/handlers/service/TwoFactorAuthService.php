@@ -27,27 +27,53 @@ class TwoFactorAuthService
     }
 
     /**
-     * Gerar QR Code para TOTP
+     * Gerar QR Code para TOTP em base64 (data URI)
      * @param string $email Email do usuário
      * @param string $secret Secret TOTP
      * @param string $issuer Nome da aplicação (ex: MailJZTech)
-     * @return string URL do QR Code
+     * @return string Base64 do QR Code (data URI PNG)
      */
     public static function generateQRCode(string $email, string $secret, string $issuer = 'MailJZTech'): string
     {
-        $label = urlencode("{$issuer} ({$email})");
-        $params = [
-            'secret' => $secret,
-            'issuer' => urlencode($issuer),
-            'algorithm' => 'SHA1',
-            'digits' => self::TOTP_DIGITS,
-            'period' => self::TOTP_TIME_STEP
-        ];
+        try {
+            $label = "{$issuer} ({$email})";
+            $params = [
+                'secret' => $secret,
+                'issuer' => $issuer,
+                'algorithm' => 'SHA1',
+                'digits' => self::TOTP_DIGITS,
+                'period' => self::TOTP_TIME_STEP
+            ];
 
-        $otpauthUrl = "otpauth://totp/{$label}?" . http_build_query($params);
+            $otpauthUrl = "otpauth://totp/{$label}?" . http_build_query($params);
 
-        // Usar Google Charts API para gerar QR Code
-        return "https://chart.googleapis.com/chart?chs=300x300&chld=M|0&cht=qr&chl=" . urlencode($otpauthUrl);
+            // Usar endroid/qr-code v5 com Builder
+            $result = \Endroid\QrCode\Builder\Builder::create()
+                ->writer(new \Endroid\QrCode\Writer\PngWriter())
+                ->writerOptions([])
+                ->data($otpauthUrl)
+                ->encoding(new \Endroid\QrCode\Encoding\Encoding('UTF-8'))
+                ->errorCorrectionLevel(\Endroid\QrCode\ErrorCorrectionLevel::High)
+                ->size(300)
+                ->margin(10)
+                ->roundBlockSizeMode(\Endroid\QrCode\RoundBlockSizeMode::Margin)
+                ->build();
+
+            // Retornar como data URI base64
+            return $result->getDataUri();
+        } catch (\Exception $e) {
+            // Fallback: retornar URL do Google Charts em caso de erro
+            $label = urlencode("{$issuer} ({$email})");
+            $params = [
+                'secret' => $secret,
+                'issuer' => urlencode($issuer),
+                'algorithm' => 'SHA1',
+                'digits' => self::TOTP_DIGITS,
+                'period' => self::TOTP_TIME_STEP
+            ];
+            $otpauthUrl = "otpauth://totp/{$label}?" . http_build_query($params);
+            return "https://chart.googleapis.com/chart?chs=300x300&chld=M|0&cht=qr&chl=" . urlencode($otpauthUrl);
+        }
     }
 
     /**

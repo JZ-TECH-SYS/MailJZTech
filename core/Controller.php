@@ -8,9 +8,9 @@ use \src\Config;
 class Controller
 {
 
-    protected function redirect($url)
+    public static function redirect($url)
     {
-        header("Location: " . $this->getBaseUrl() . $url);
+        header("Location: " . self::getBaseUrl() . $url);
         exit;
     }
 

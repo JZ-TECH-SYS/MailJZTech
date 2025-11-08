@@ -148,6 +148,8 @@
             z-index: 1000;
             align-items: center;
             justify-content: center;
+            padding: 10px;
+            box-sizing: border-box;
         }
 
         .modal-2fa.show {
@@ -160,7 +162,9 @@
             border-radius: 15px;
             padding: 40px;
             max-width: 500px;
-            width: 90%;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
             box-shadow: 0 0 30px rgba(0, 217, 255, 0.2);
             animation: slideIn 0.3s ease;
         }
@@ -204,20 +208,32 @@
         .qr-code-container img {
             max-width: 250px;
             border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.3);
+            background: white;
+            padding: 10px;
+        }
+
+        .qr-code-container p {
+            color: #b0b8d4;
+            margin: 0;
         }
 
         .secret-container {
-            background: #f5f5f5;
-            padding: 15px;
+            background: #141829;
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            padding: 20px;
             border-radius: 8px;
             margin: 20px 0;
         }
 
         .secret-container label {
-            font-size: 12px;
-            color: #666;
+            font-size: 13px;
+            color: #00d9ff;
+            font-weight: 600;
             display: block;
             margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .secret-input {
@@ -225,10 +241,32 @@
             font-size: 14px;
             text-align: center;
             letter-spacing: 2px;
+            background: #0f1419;
+            color: #00d9ff;
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .secret-input:focus {
+            background: #0f1419;
+            color: #00d9ff;
+            border-color: #00d9ff;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+            outline: none;
         }
 
         .btn-copy-secret {
             margin-top: 10px;
+            background: #00d9ff;
+            color: #0a0e27;
+            border: none;
+            font-weight: 600;
+        }
+
+        .btn-copy-secret:hover {
+            background: #00b8cc;
+            color: #0a0e27;
         }
 
         .code-input {
@@ -237,11 +275,24 @@
             text-align: center;
             font-weight: bold;
             font-family: 'Courier New', monospace;
+            background: #0f1419;
+            color: #00d9ff;
+            border: 2px solid rgba(0, 217, 255, 0.4);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .code-input:focus {
+            background: #0f1419;
+            color: #00d9ff;
+            border-color: #00d9ff;
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.4);
+            outline: none;
         }
 
         .backup-codes-container {
-            background: #fff3cd;
-            border: 1px solid #ffc107;
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.5);
             border-radius: 8px;
             padding: 15px;
             margin: 20px 0;
@@ -252,6 +303,19 @@
             display: block;
         }
 
+        .backup-codes-container strong {
+            color: #ffc107;
+            display: block;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .backup-codes-container p {
+            color: #b0b8d4;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+
         .backup-codes-list {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -260,12 +324,16 @@
         }
 
         .backup-code {
-            background: white;
-            padding: 8px;
+            background: #0f1419;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            padding: 10px;
             border-radius: 5px;
             font-family: 'Courier New', monospace;
             font-size: 12px;
+            color: #ffc107;
             text-align: center;
+            font-weight: 600;
+            word-break: break-all;
         }
 
         .loading-spinner {
@@ -274,6 +342,310 @@
 
         .loading-spinner.show {
             display: inline-block;
+        }
+
+        /* Form 2FA no modal */
+        #form2FA {
+            display: block;
+        }
+
+        #form2FA .form-group {
+            margin-bottom: 20px;
+        }
+
+        #form2FA .form-label {
+            color: #00d9ff;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+        }
+
+        #form2FA .form-control {
+            border-radius: 8px;
+            border: 2px solid rgba(0, 217, 255, 0.3);
+            background: #0f1419;
+            color: #00d9ff;
+            padding: 12px 15px;
+        }
+
+        #form2FA .form-control:focus {
+            background: #0f1419;
+            color: #00d9ff;
+            border-color: #00d9ff;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+        }
+
+        #form2FA button[type="submit"] {
+            background: #00d9ff;
+            border: none;
+            color: #0a0e27;
+            font-weight: 600;
+            padding: 12px;
+            border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        #form2FA button[type="submit"]:hover {
+            background: #00b8cc;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 217, 255, 0.4);
+        }
+
+        #form2FA button[type="submit"]:active {
+            transform: translateY(0);
+        }
+
+        #form2FA button[type="submit"]:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* ============================================
+           RESPONSIVIDADE - MOBILE E TABLETS
+           ============================================ */
+
+        /* Tablets: 768px a 1024px */
+        @media (max-width: 1024px) {
+            .modal-2fa-content {
+                max-width: 90% !important;
+                padding: 30px 20px !important;
+            }
+
+            .qr-code-container img {
+                max-width: 200px !important;
+            }
+
+            .code-input {
+                font-size: 20px !important;
+                letter-spacing: 6px !important;
+            }
+
+            .backup-codes-list {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* Mobile: 480px a 768px */
+        @media (max-width: 768px) {
+            .modal-2fa {
+                padding: 10px !important;
+            }
+
+            .modal-2fa-content {
+                max-width: 100% !important;
+                width: 100% !important;
+                padding: 20px 15px !important;
+                border-radius: 12px !important;
+                max-height: 85vh !important;
+            }
+
+            .modal-2fa-header {
+                margin-bottom: 15px !important;
+            }
+
+            .modal-2fa-header h2 {
+                font-size: 18px !important;
+                margin-bottom: 8px !important;
+            }
+
+            .modal-2fa-header p {
+                font-size: 12px !important;
+            }
+
+            .qr-code-container {
+                margin: 15px 0 !important;
+                padding: 15px !important;
+            }
+
+            .qr-code-container img {
+                max-width: 180px !important;
+                padding: 8px !important;
+            }
+
+            .secret-container {
+                padding: 15px !important;
+                margin: 15px 0 !important;
+            }
+
+            .secret-container label {
+                font-size: 11px !important;
+            }
+
+            .secret-input {
+                font-size: 12px !important;
+                letter-spacing: 1px !important;
+                padding: 10px !important;
+            }
+
+            .btn-copy-secret {
+                font-size: 12px !important;
+                padding: 8px 12px !important;
+            }
+
+            .code-input {
+                font-size: 18px !important;
+                letter-spacing: 4px !important;
+                padding: 12px !important;
+            }
+
+            #form2FA .form-label {
+                font-size: 12px !important;
+            }
+
+            #form2FA .form-control {
+                font-size: 14px !important;
+                padding: 10px !important;
+            }
+
+            #form2FA button[type="submit"] {
+                font-size: 13px !important;
+                padding: 10px !important;
+            }
+
+            .backup-codes-container {
+                padding: 12px !important;
+                margin: 15px 0 !important;
+            }
+
+            .backup-codes-container strong {
+                font-size: 12px !important;
+            }
+
+            .backup-codes-container p {
+                font-size: 11px !important;
+                margin: 8px 0 !important;
+            }
+
+            .backup-codes-list {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+                margin-top: 8px !important;
+            }
+
+            .backup-code {
+                padding: 8px !important;
+                font-size: 11px !important;
+            }
+
+            .btn-outline-secondary {
+                font-size: 12px !important;
+                padding: 8px !important;
+            }
+        }
+
+        /* Celular pequeno: até 480px */
+        @media (max-width: 480px) {
+            .modal-2fa {
+                padding: 5px !important;
+            }
+
+            .modal-2fa-content {
+                max-width: 100% !important;
+                width: 100% !important;
+                padding: 15px 12px !important;
+                border-radius: 10px !important;
+                max-height: 90vh !important;
+            }
+
+            .modal-2fa-header h2 {
+                font-size: 16px !important;
+                margin-bottom: 5px !important;
+            }
+
+            .modal-2fa-header p {
+                font-size: 11px !important;
+            }
+
+            .qr-code-container {
+                margin: 12px 0 !important;
+                padding: 12px !important;
+            }
+
+            .qr-code-container img {
+                max-width: 150px !important;
+                padding: 6px !important;
+            }
+
+            .secret-container {
+                padding: 12px !important;
+                margin: 12px 0 !important;
+            }
+
+            .secret-container label {
+                font-size: 10px !important;
+            }
+
+            .secret-input {
+                font-size: 11px !important;
+                letter-spacing: 0.5px !important;
+                padding: 8px !important;
+            }
+
+            .btn-copy-secret {
+                font-size: 11px !important;
+                padding: 6px 8px !important;
+            }
+
+            .code-input {
+                font-size: 16px !important;
+                letter-spacing: 3px !important;
+                padding: 10px !important;
+            }
+
+            #form2FA .form-group {
+                margin-bottom: 12px !important;
+            }
+
+            #form2FA .form-label {
+                font-size: 11px !important;
+            }
+
+            #form2FA .form-control {
+                font-size: 13px !important;
+                padding: 8px !important;
+            }
+
+            #form2FA small {
+                font-size: 9px !important;
+            }
+
+            #form2FA button[type="submit"] {
+                font-size: 12px !important;
+                padding: 8px !important;
+            }
+
+            .backup-codes-container {
+                padding: 10px !important;
+                margin: 12px 0 !important;
+            }
+
+            .backup-codes-container strong {
+                font-size: 11px !important;
+            }
+
+            .backup-codes-container p {
+                font-size: 10px !important;
+                margin: 5px 0 !important;
+            }
+
+            .backup-codes-list {
+                grid-template-columns: 1fr !important;
+                gap: 6px !important;
+                margin-top: 6px !important;
+            }
+
+            .backup-code {
+                padding: 6px !important;
+                font-size: 10px !important;
+            }
+
+            .btn-outline-secondary {
+                font-size: 11px !important;
+                padding: 6px !important;
+            }
         }
     </style>
 </head>
@@ -341,17 +713,21 @@
 
             <div class="qr-code-container">
                 <img id="qrCode" src="" alt="QR Code" style="display: none;">
-                <p id="qrLoading" style="color: #666;">Gerando QR Code...</p>
+                <p id="qrLoading" style="color: #b0b8d4;"><i class="fas fa-spinner fa-spin"></i> Gerando QR Code...</p>
             </div>
 
             <div class="secret-container">
-                <label>Ou insira manualmente:</label>
+                <label><i class="fas fa-keyboard"></i> Ou insira manualmente:</label>
                 <input type="text" class="form-control secret-input" id="secretCode" readonly>
-                <button type="button" class="btn btn-sm btn-outline-primary btn-copy-secret" onclick="copiarSecret()">
-                    <i class="fas fa-copy"></i> Copiar
+                <button type="button" class="btn btn-sm btn-copy-secret" onclick="copiarSecret()">
+                    <i class="fas fa-copy"></i> Copiar Secret
                 </button>
-                <small class="d-block mt-2" style="color: #666;">
-                    <strong>Aplicativos:</strong> Google Authenticator, Microsoft Authenticator, Authy
+                <small class="d-block mt-3" style="color: #b0b8d4; line-height: 1.6;">
+                    <strong style="color: #00d9ff;">📱 Aplicativos Suportados:</strong><br>
+                    • Google Authenticator<br>
+                    • Microsoft Authenticator<br>
+                    • Authy<br>
+                    • 1Password
                 </small>
             </div>
 
@@ -361,12 +737,12 @@
 
                 <div class="form-group">
                     <label for="codigoTOTP" class="form-label">
-                        Insira o código de 6 dígitos
+                        <i class="fas fa-lock"></i> Insira o código de 6 dígitos
                     </label>
                     <input type="text" class="form-control code-input" id="codigoTOTP" name="codigo" 
                            placeholder="000000" maxlength="6" pattern="\d{6}" required autocomplete="off">
-                    <small class="d-block mt-2" style="color: #666;">
-                        Insira os 6 dígitos do seu autenticador
+                    <small class="d-block mt-2" style="color: #b0b8d4;">
+                        Digite os 6 dígitos do seu autenticador
                     </small>
                 </div>
 
@@ -376,8 +752,8 @@
             </form>
 
             <div class="backup-codes-container" id="backupCodesContainer">
-                <strong><i class="fas fa-exclamation-triangle"></i> Códigos de Backup</strong>
-                <p style="font-size: 12px; margin-top: 10px;">Guarde estes códigos em local seguro:</p>
+                <strong><i class="fas fa-download"></i> Códigos de Backup</strong>
+                <p>⚠️ Guarde estes códigos em local seguro. Use-os se perder acesso ao seu autenticador.</p>
                 <div class="backup-codes-list" id="backupCodesList"></div>
                 <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-3" onclick="copiarCodigosBackup()">
                     <i class="fas fa-copy"></i> Copiar Todos
@@ -390,19 +766,80 @@
     <script>
         const base = '<?php echo $base; ?>';
 
+        // ========================================
+        // GERENCIAMENTO DE TOKEN
+        // ========================================
+
+        /**
+         * Salva token no localStorage
+         */
+        function salvarToken(token) {
+            if (token) {
+                localStorage.setItem('auth_token', token);
+                console.debug('✓ Token salvo:', token.substring(0, 10) + '...');
+            }
+        }
+
+        /**
+         * Recupera token do localStorage
+         */
+        function obterToken() {
+            return localStorage.getItem('auth_token') || null;
+        }
+
+        /**
+         * Remove token do localStorage
+         */
+        function removerToken() {
+            localStorage.removeItem('auth_token');
+            console.debug('✓ Token removido');
+        }
+
+        /**
+         * Realiza fetch com token no header Authorization
+         */
+        async function fetchComToken(url, options = {}) {
+            const token = obterToken();
+            const headers = options.headers || {};
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            headers['Content-Type'] = options.headers?.['Content-Type'] || 'application/json';
+
+            return fetch(url, {
+                ...options,
+                headers
+            });
+        }
+
+        /**
+         * Expõe fetchComToken globalmente para uso em outras páginas
+         */
+        window.fetchComToken = fetchComToken;
+
         // Auto-formatar código TOTP
         document.getElementById('codigoTOTP').addEventListener('input', function(e) {
             this.value = this.value.replace(/[^0-9]/g, '');
         });
 
-        // Mostrar modal 2FA quando necessário
+        // Mostrar modal para CONFIGURAR 2FA (com QR/secret)
         function mostrarModal2FA(data) {
+            const form = document.getElementById('form2FA');
+            form.setAttribute('data-modo', 'config');
             document.getElementById('secretCode').value = data.secret_formatado;
             document.getElementById('secret').value = data.secret;
             document.getElementById('usuarioId').value = data.usuario_id;
             document.getElementById('qrCode').src = data.qr_code_url;
             document.getElementById('qrCode').style.display = 'block';
             document.getElementById('qrLoading').style.display = 'none';
+
+            // Mostrar blocos de configuração
+            document.querySelector('.secret-container').style.display = '';
+            document.getElementById('backupCodesContainer').classList.add('show');
+            document.querySelector('.modal-2fa-header h2').innerHTML = '<i class="fas fa-shield-alt"></i> Configurar Autenticação';
+            document.querySelector('.modal-2fa-header p').textContent = 'Configure a autenticação de dois fatores para sua conta';
 
             // Exibir códigos de backup
             if (data.backup_codes && data.backup_codes.length > 0) {
@@ -414,8 +851,25 @@
                     div.textContent = code;
                     container.appendChild(div);
                 });
-                document.getElementById('backupCodesContainer').classList.add('show');
             }
+
+            document.getElementById('modal2FA').classList.add('show');
+            document.getElementById('codigoTOTP').focus();
+        }
+
+        // Mostrar modal para VERIFICAR 2FA (sem QR/secret)
+        function mostrarModalVerificar2FA(dados) {
+            const form = document.getElementById('form2FA');
+            form.setAttribute('data-modo', 'verificar');
+            document.getElementById('usuarioId').value = dados.idusuario;
+            // Esconder QR e secret
+            document.getElementById('qrCode').style.display = 'none';
+            document.getElementById('qrLoading').style.display = 'none';
+            document.querySelector('.secret-container').style.display = 'none';
+            document.getElementById('backupCodesContainer').classList.remove('show');
+            // Título e descrição
+            document.querySelector('.modal-2fa-header h2').innerHTML = '<i class="fas fa-shield-alt"></i> Verificar 2FA';
+            document.querySelector('.modal-2fa-header p').textContent = 'Abra seu autenticador e informe o código de 6 dígitos';
 
             document.getElementById('modal2FA').classList.add('show');
             document.getElementById('codigoTOTP').focus();
@@ -470,19 +924,40 @@
                     })
                 });
 
-                const data = await response.json();
+                const envelope = await response.json();
+                console.debug('LOGIN envelope:', envelope);
+                const data = envelope.result || {};
 
-                if (data.success) {
+                if (envelope.error) {
+                    alert((data && data.mensagem) || 'Erro ao fazer login');
+                } else {
+                    // Salvar token temporário (será sobrescrito após 2FA)
+                    if (data.token) {
+                        salvarToken(data.token);
+                    }
+
+                    // Fluxo login OK
                     if (data.requer_2fa) {
-                        // Mostrar modal 2FA
-                        mostrarModal2FA(data);
+                        // Usuário já tem 2FA: abrir modal somente para verificar código
+                        mostrarModalVerificar2FA(data);
+                    } else if (data.configurar_2fa) {
+                        // Necessário configurar: chamar iniciar-2fa para obter secret/QR
+                        const initResp = await fetchComToken('<?php echo $base; ?>/iniciar-2fa', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ usuario_id: data.idusuario })
+                        });
+                        const initEnvelope = await initResp.json();
+                        console.debug('INICIAR-2FA envelope:', initEnvelope);
+                        if (initEnvelope.error) {
+                            alert('Falha ao iniciar configuração 2FA');
+                        } else {
+                            mostrarModal2FA(initEnvelope.result);
+                        }
                     } else {
-                        // Login bem-sucedido
+                        // Login sem 2FA exigido
                         window.location.href = '<?php echo $base; ?>/dashboard';
                     }
-                } else {
-                    // Erro no login
-                    alert(data.mensagem || 'Erro ao fazer login');
                 }
             } catch (error) {
                 alert('Erro ao conectar com o servidor');
@@ -493,7 +968,7 @@
             }
         });
 
-        // Processar 2FA
+        // Processar 2FA (configurar ou verificar) no mesmo modal
         document.getElementById('form2FA').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -502,23 +977,37 @@
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verificando...';
 
             try {
-                const response = await fetch('<?php echo $base; ?>/confirmar-2fa', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
+                const modo = this.getAttribute('data-modo') || 'config';
+                let url = '<?php echo $base; ?>/confirmar-2fa';
+                let payload = {
+                    usuario_id: document.getElementById('usuarioId').value,
+                    codigo: document.getElementById('codigoTOTP').value
+                };
+                if (modo === 'config') {
+                    payload.secret = document.getElementById('secret').value;
+                } else {
+                    // verificar 2FA durante login
+                    url = '<?php echo $base; ?>/verificar-2fa';
+                    payload = {
                         usuario_id: document.getElementById('usuarioId').value,
-                        secret: document.getElementById('secret').value,
-                        codigo: document.getElementById('codigoTOTP').value
-                    })
+                        codigo_totp: document.getElementById('codigoTOTP').value
+                    };
+                }
+
+                const response = await fetchComToken(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
 
-                const data = await response.json();
+                const envelope = await response.json();
+                console.debug('CONFIRM/VERIFY 2FA envelope:', envelope);
+                const data = envelope.result || {};
 
-                if (data.success) {
-                    // 2FA confirmado, redirecionar para dashboard
-                    window.location.href = '<?php echo $base; ?>/dashboard';
+                if (!envelope.error && (data.success || envelope.result === 'Logout realizado com sucesso')) {
+                    // Token já foi salvo no primeiro login, agora só redireciona
+                    console.debug('✓ 2FA confirmado, redirecionando...');
+                    window.location.href = '<?= $base; ?>/dashboard';
                 } else {
                     alert(data.mensagem || 'Código inválido');
                     document.getElementById('codigoTOTP').value = '';

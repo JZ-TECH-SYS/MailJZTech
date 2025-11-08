@@ -8,10 +8,10 @@
 
 namespace src\handlers;
 
-use src\models\Usuario as UsuarioModel;
+use src\models\Usuarios as UsuarioModel;
 use Exception;
 
-class Usuario
+class Usuarios
 {
     /**
      * Verifica se o usuário está logado com base no token de sessão.
@@ -31,21 +31,21 @@ class Usuario
     }
 
     /**
-     * Verifica se o nome de usuário e a senha fornecidos são válidos.
+     * Verifica se o email e a senha fornecidos são válidos.
      *
-     * @param string $nome O nome de usuário fornecido
+     * @param string $email O email fornecido
      * @param string $senha A senha fornecida
      * @return array|false Retorna um array contendo informações do usuário, incluindo o token, se a autenticação for bem-sucedida; caso contrário, retorna false.
      */
-    public static function verifyLogin($nome, $senha)
+    public static function verifyLogin($email, $senha)
     {
-        $usuario = UsuarioModel::getUserName($nome);
+        $usuario = UsuarioModel::getUserEmail($email);
+        //echo password_hash('0137', PASSWORD_BCRYPT);die;
         if (!empty($usuario)) {
             if (password_verify($senha, $usuario['senha'])) {
                 $token = md5(time() . rand(0, 9999) . time());
-                UsuarioModel::saveToken($token, $nome);
+                UsuarioModel::saveToken($token, $email);
                 $usuario['token'] = $token;
-                $_SESSION['token'] = $token;
                 
                 return $usuario;
             }

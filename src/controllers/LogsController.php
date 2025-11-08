@@ -17,66 +17,104 @@ class LogsController extends ctrl
     }
 
     /**
-     * Lista logs recentes (API)
+     * Lista logs com paginação e filtros (API)
+     * GET /api/logs/listar
      */
-    public function listarLogs()
+    public function listar()
     {
         try {
-            $idsistema = $_GET['idsistema'] ?? null;
-            $limite = $_GET['limite'] ?? 100;
+            $pagina = (int)($_GET['pagina'] ?? 1);
+            $limite = (int)($_GET['limite'] ?? 20);
+            $tipo = $_GET['tipo'] ?? null;
+            $dataInicial = $_GET['data_inicial'] ?? null;
+            $dataFinal = $_GET['data_final'] ?? null;
+            $busca = $_GET['busca'] ?? null;
 
-            if (!$idsistema) {
-                return ctrl::response(['mensagem' => 'ID do sistema é obrigatório'], 400);
+            $offset = ($pagina - 1) * $limite;
+
+            // Construir consulta base
+            $query = EmailLogs::select();
+
+            // Aplicar filtros
+            if ($tipo) {
+                $query->where('tipo_log', $tipo);
+            }
+            
+            if ($dataInicial && $dataFinal) {
+                $query->where('data_log', '>=', $dataInicial . ' 00:00:00');
+                $query->where('data_log', '<=', $dataFinal . ' 23:59:59');
+            } elseif ($dataInicial) {
+                $query->where('data_log', '>=', $dataInicial . ' 00:00:00');
+            } elseif ($dataFinal) {
+                $query->where('data_log', '<=', $dataFinal . ' 23:59:59');
             }
 
-            $logs = EmailLogs::obterPorSistema($idsistema, $limite);
+            if ($busca) {
+                $query->where('mensagem', 'LIKE', '%' . $busca . '%');
+            }
+
+            // Contar total para paginação
+            $total = count($query->get());
+            $paginasTotais = ceil($total / $limite);
+
+            // Buscar logs paginados
+            $logs = EmailLogs::select()
+                ->where(function($q) use ($tipo, $dataInicial, $dataFinal, $busca) {
+                    if ($tipo) $q->where('tipo_log', $tipo);
+                    if ($dataInicial && $dataFinal) {
+                        $q->where('data_log', '>=', $dataInicial . ' 00:00:00')
+                          ->where('data_log', '<=', $dataFinal . ' 23:59:59');
+                    } elseif ($dataInicial) {
+                        $q->where('data_log', '>=', $dataInicial . ' 00:00:00');
+                    } elseif ($dataFinal) {
+                        $q->where('data_log', '<=', $dataFinal . ' 23:59:59');
+                    }
+                    if ($busca) {
+                        $q->where('mensagem', 'LIKE', '%' . $busca . '%');
+                    }
+                })
+                ->orderBy('data_log', 'DESC')
+                ->limit($limite)
+                ->offset($offset)
+                ->get();
 
             return ctrl::response([
-                'sucesso' => true,
                 'logs' => $logs,
-                'total' => count($logs)
+                'total' => $total,
+                'pagina_atual' => $pagina,
+                'paginas_totais' => $paginasTotais
             ], 200);
+
         } catch (\Exception $e) {
-            return ctrl::response([
-                'sucesso' => false,
-                'mensagem' => 'Erro ao listar logs: ' . $e->getMessage()
-            ], 500);
+            return ctrl::rejectResponse($e);
         }
     }
 
     /**
-     * Filtra logs por período (API)
+     * Retorna detalhes de um log específico (API)
+     * GET /api/logs/detalhe/{id}
      */
-    public function filtrarLogs()
+    public function detalhe($args)
     {
         try {
-            $idsistema = $_GET['idsistema'] ?? null;
-            $data_inicio = $_GET['data_inicio'] ?? null;
-            $data_fim = $_GET['data_fim'] ?? null;
-            $tipo_log = $_GET['tipo_log'] ?? null;
+            $idlog = $args['id'] ?? null;
 
-            if (!$idsistema) {
-                return $this->response(['mensagem' => 'ID do sistema é obrigatório'], 400);
+            if (!$idlog) {
+                throw new \Exception('ID do log não fornecido');
             }
 
-            if ($data_inicio && $data_fim) {
-                $logs = EmailLogs::obterPorPeriodo($idsistema, $data_inicio, $data_fim);
-            } elseif ($tipo_log) {
-                $logs = EmailLogs::obterPorTipo($tipo_log, 100);
-            } else {
-                $logs = EmailLogs::obterRecentes(100);
+            $log = EmailLogs::select()
+                ->where('idlog', $idlog)
+                ->one();
+
+            if (!$log) {
+                return ctrl::response(['mensagem' => 'Log não encontrado'], 404);
             }
 
-            return ctrl::response([
-                'sucesso' => true,
-                'logs' => $logs,
-                'total' => count($logs)
-            ]);
+            return ctrl::response($log, 200);
+
         } catch (\Exception $e) {
-            return ctrl::response([
-                'sucesso' => false,
-                'mensagem' => 'Erro ao filtrar logs: ' . $e->getMessage()
-            ], 500);
+            return ctrl::rejectResponse($e);
         }
     }
 }

@@ -22,11 +22,12 @@
                 <label class="form-label">Tipo de Log</label>
                 <select class="form-select" id="filtroTipo" onchange="aplicarFiltros()">
                     <option value="">Todos</option>
-                    <option value="envio">Envio de E-mail</option>
-                    <option value="criacao_sistema">Criação de Sistema</option>
-                    <option value="atualizacao_sistema">Atualização de Sistema</option>
+                    <option value="envio">Envio</option>
+                    <option value="criacao">Criação</option>
+                    <option value="atualizacao">Atualização</option>
                     <option value="erro">Erro</option>
                     <option value="autenticacao">Autenticação</option>
+                    <option value="validacao">Validação</option>
                 </select>
             </div>
             <div class="col-md-3 mb-3">
@@ -48,7 +49,7 @@
 <!-- Tabela de Logs -->
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0" id="tabelaLogs">
             <thead>
                 <tr>
                     <th>Data/Hora</th>
@@ -59,102 +60,24 @@
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($logs)): ?>
-                    <?php foreach ($logs as $log): ?>
-                        <tr>
-                            <td>
-                                <small class="text-muted">
-                                    <?php echo date('d/m/Y H:i:s', strtotime($log['data_criacao'])); ?>
-                                </small>
-                            </td>
-                            <td>
-                                <?php 
-                                $tipo = $log['tipo'] ?? 'outro';
-                                $badge_class = match($tipo) {
-                                    'envio' => 'bg-info',
-                                    'criacao_sistema' => 'bg-success',
-                                    'atualizacao_sistema' => 'bg-primary',
-                                    'erro' => 'bg-danger',
-                                    'autenticacao' => 'bg-warning',
-                                    default => 'bg-secondary'
-                                };
-                                $icon = match($tipo) {
-                                    'envio' => 'envelope',
-                                    'criacao_sistema' => 'plus-circle',
-                                    'atualizacao_sistema' => 'edit',
-                                    'erro' => 'exclamation-circle',
-                                    'autenticacao' => 'lock',
-                                    default => 'info-circle'
-                                };
-                                ?>
-                                <span class="badge <?php echo $badge_class; ?>">
-                                    <i class="fas fa-<?php echo $icon; ?>"></i> <?php echo ucfirst(str_replace('_', ' ', $tipo)); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <small><?php echo htmlspecialchars(substr($log['mensagem'], 0, 80)); ?></small>
-                                <?php if (strlen($log['mensagem']) > 80): ?>
-                                    <span class="text-muted">...</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php if (!empty($log['idemail'])): ?>
-                                    <code><?php echo $log['idemail']; ?></code>
-                                <?php else: ?>
-                                    <span class="text-muted">-</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary" 
-                                        onclick="verDetalhesLog(<?php echo $log['idlog']; ?>)"
-                                        data-bs-toggle="tooltip" title="Ver Detalhes">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
-                            Nenhum log encontrado
-                        </td>
-                    </tr>
-                <?php endif; ?>
+                <tr>
+                    <td colspan="5" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Carregando logs...</p>
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
 </div>
 
 <!-- Paginação -->
-<?php if (!empty($paginacao)): ?>
-    <nav aria-label="Paginação" class="mt-4">
-        <ul class="pagination justify-content-center">
-            <?php if ($paginacao['pagina'] > 1): ?>
-                <li class="page-item">
-                    <a class="page-link" href="?pagina=1">Primeira</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?pagina=<?php echo $paginacao['pagina'] - 1; ?>">Anterior</a>
-                </li>
-            <?php endif; ?>
-
-            <?php for ($i = 1; $i <= $paginacao['paginas_totais']; $i++): ?>
-                <li class="page-item <?php echo $i === $paginacao['pagina'] ? 'active' : ''; ?>">
-                    <a class="page-link" href="?pagina=<?php echo $i; ?>"><?php echo $i; ?></a>
-                </li>
-            <?php endfor; ?>
-
-            <?php if ($paginacao['pagina'] < $paginacao['paginas_totais']): ?>
-                <li class="page-item">
-                    <a class="page-link" href="?pagina=<?php echo $paginacao['pagina'] + 1; ?>">Próxima</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="?pagina=<?php echo $paginacao['paginas_totais']; ?>">Última</a>
-                </li>
-            <?php endif; ?>
-        </ul>
-    </nav>
-<?php endif; ?>
+<nav aria-label="Paginação" class="mt-4">
+    <ul class="pagination justify-content-center" id="paginacaoLogs">
+    </ul>
+</nav>
 
 <!-- Modal de Detalhes -->
 <div class="modal fade" id="detalhesLogModal" tabindex="-1">
@@ -176,56 +99,273 @@
 </div>
 
 <script>
-    function verDetalhesLog(idlog) {
+    let paginaAtual = 1;
+    const limitePorPagina = 20;
+
+    // Carregar logs via AJAX
+    async function carregarLogs(pagina = 1) {
+        try {
+            const tbody = document.querySelector('#tabelaLogs tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-3 text-muted">Carregando logs...</p>
+                    </td>
+                </tr>
+            `;
+
+            // Construir URL com filtros
+            let url = `<?php echo $base; ?>/api/logs/listar?pagina=${pagina}&limite=${limitePorPagina}`;
+            
+            const tipo = document.getElementById('filtroTipo').value;
+            const dataInicial = document.getElementById('filtroDataInicial').value;
+            const dataFinal = document.getElementById('filtroDataFinal').value;
+            const busca = document.getElementById('filtroBusca').value;
+            
+            if (tipo) url += `&tipo=${encodeURIComponent(tipo)}`;
+            if (dataInicial) url += `&data_inicial=${encodeURIComponent(dataInicial)}`;
+            if (dataFinal) url += `&data_final=${encodeURIComponent(dataFinal)}`;
+            if (busca) url += `&busca=${encodeURIComponent(busca)}`;
+
+            const response = await fetchComToken(url);
+            const data = await response.json();
+            
+            if (!data.error && data.result && data.result.logs) {
+                renderizarLogs(data.result.logs);
+                renderizarPaginacao(data.result.paginas_totais || 1, pagina);
+                paginaAtual = pagina;
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Nenhum log encontrado</p>
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('paginacaoLogs').innerHTML = '';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar logs:', error);
+            const tbody = document.querySelector('#tabelaLogs tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4">
+                        <i class="fas fa-times-circle text-danger fa-3x mb-3"></i>
+                        <p class="text-danger">Erro ao carregar logs: ${error.message}</p>
+                        <button class="btn btn-primary" onclick="carregarLogs(${paginaAtual})">
+                            <i class="fas fa-sync"></i> Tentar Novamente
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    function renderizarLogs(logs) {
+        const tbody = document.querySelector('#tabelaLogs tbody');
+        
+        if (logs.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Nenhum log encontrado</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = logs.map(log => {
+            const tipo = log.tipo_log || 'outro';
+            const {badgeClass, icon} = getTipoBadge(tipo);
+            const mensagem = escapeHtml(log.mensagem || '');
+            const mensagemCurta = mensagem.length > 80 ? mensagem.substring(0, 80) + '...' : mensagem;
+            
+            return `
+                <tr>
+                    <td>
+                        <small class="text-muted">
+                            ${formatarDataHora(log.data_log)}
+                        </small>
+                    </td>
+                    <td>
+                        <span class="badge ${badgeClass}">
+                            <i class="fas fa-${icon}"></i> ${formatarTipo(tipo)}
+                        </span>
+                    </td>
+                    <td>
+                        <small>${mensagemCurta}</small>
+                    </td>
+                    <td>
+                        ${log.idemail ? `<code>${log.idemail}</code>` : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" 
+                                onclick="verDetalhesLog(${log.idlog})"
+                                title="Ver Detalhes">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderizarPaginacao(totalPaginas, paginaAtiva) {
+        const paginacao = document.getElementById('paginacaoLogs');
+        
+        if (totalPaginas <= 1) {
+            paginacao.innerHTML = '';
+            return;
+        }
+
+        let html = `
+            <li class="page-item ${paginaAtiva === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="carregarLogs(${paginaAtiva - 1}); return false;">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+        `;
+
+        for (let i = 1; i <= totalPaginas; i++) {
+            if (i === 1 || i === totalPaginas || (i >= paginaAtiva - 2 && i <= paginaAtiva + 2)) {
+                html += `
+                    <li class="page-item ${i === paginaAtiva ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="carregarLogs(${i}); return false;">${i}</a>
+                    </li>
+                `;
+            } else if (i === paginaAtiva - 3 || i === paginaAtiva + 3) {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+
+        html += `
+            <li class="page-item ${paginaAtiva === totalPaginas ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="carregarLogs(${paginaAtiva + 1}); return false;">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `;
+
+        paginacao.innerHTML = html;
+    }
+
+    function getTipoBadge(tipo) {
+        const tipos = {
+            'envio': {badgeClass: 'badge-info', icon: 'envelope'},
+            'criacao': {badgeClass: 'badge-success', icon: 'plus-circle'},
+            'atualizacao': {badgeClass: 'badge-primary', icon: 'edit'},
+            'erro': {badgeClass: 'badge-danger', icon: 'exclamation-circle'},
+            'autenticacao': {badgeClass: 'badge-warning', icon: 'lock'},
+            'validacao': {badgeClass: 'badge-info', icon: 'check-circle'}
+        };
+        return tipos[tipo] || {badgeClass: 'badge-secondary', icon: 'info-circle'};
+    }
+
+    function formatarTipo(tipo) {
+        return tipo.split('_').map(palavra => 
+            palavra.charAt(0).toUpperCase() + palavra.slice(1)
+        ).join(' ');
+    }
+
+    function formatarDataHora(dataString) {
+        if (!dataString) return 'N/A';
+        const data = new Date(dataString);
+        return data.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text?.toString().replace(/[&<>"']/g, m => map[m]) || '';
+    }
+
+    async function verDetalhesLog(idlog) {
         const modal = new bootstrap.Modal(document.getElementById('detalhesLogModal'));
         const content = document.getElementById('detalhesLogContent');
         
-        // Aqui você faria uma requisição para obter os detalhes do log
-        // Por enquanto, vou mostrar um exemplo
         content.innerHTML = `
-            <div class="mb-3">
-                <strong>ID do Log:</strong><br>
-                <code>${idlog}</code>
-            </div>
-            <div class="mb-3">
-                <strong>Tipo:</strong><br>
-                <span class="badge bg-info">Envio de E-mail</span>
-            </div>
-            <div class="mb-3">
-                <strong>Mensagem:</strong><br>
-                E-mail enviado com sucesso para usuario@example.com
-            </div>
-            <div class="mb-3">
-                <strong>Data/Hora:</strong><br>
-                ${new Date().toLocaleString('pt-BR')}
-            </div>
-            <div class="mb-3">
-                <strong>Dados Adicionais:</strong><br>
-                <pre class="bg-light p-2 rounded"><code>{
-  "idemail": 123,
-  "idsistema": 1,
-  "destinatario": "usuario@example.com",
-  "status": "enviado"
-}</code></pre>
+            <div class="text-center">
+                <div class="spinner-border" role="status"></div>
+                <p class="mt-3 text-muted">Carregando detalhes...</p>
             </div>
         `;
         
         modal.show();
+
+        try {
+            const response = await fetchComToken(`<?php echo $base; ?>/api/logs/detalhe/${idlog}`);
+            const data = await response.json();
+            
+            if (!data.error && data.result) {
+                const log = data.result;
+                const {badgeClass, icon} = getTipoBadge(log.tipo);
+                
+                content.innerHTML = `
+                    <div class="mb-3">
+                        <strong>ID do Log:</strong><br>
+                        <code>${log.idlog}</code>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Tipo:</strong><br>
+                        <span class="badge ${badgeClass}">
+                            <i class="fas fa-${icon}"></i> ${formatarTipo(log.tipo_log)}
+                        </span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Mensagem:</strong><br>
+                        ${escapeHtml(log.mensagem)}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Data/Hora:</strong><br>
+                        ${formatarDataHora(log.data_log)}
+                    </div>
+                    ${log.idemail ? `
+                        <div class="mb-3">
+                            <strong>E-mail ID:</strong><br>
+                            <code>${log.idemail}</code>
+                        </div>
+                    ` : ''}
+                    ${log.dados_adicionais ? `
+                        <div class="mb-3">
+                            <strong>Dados Adicionais:</strong><br>
+                            <pre class="bg-light p-2 rounded"><code>${JSON.stringify(JSON.parse(log.dados_adicionais), null, 2)}</code></pre>
+                        </div>
+                    ` : ''}
+                `;
+            } else {
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        Erro ao carregar detalhes do log
+                    </div>
+                `;
+            }
+        } catch (error) {
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    Erro: ${error.message}
+                </div>
+            `;
+        }
     }
 
     function aplicarFiltros() {
-        const tipo = document.getElementById('filtroTipo').value;
-        const dataInicial = document.getElementById('filtroDataInicial').value;
-        const dataFinal = document.getElementById('filtroDataFinal').value;
-        const busca = document.getElementById('filtroBusca').value;
-        
-        const params = new URLSearchParams();
-        if (tipo) params.append('tipo', tipo);
-        if (dataInicial) params.append('data_inicial', dataInicial);
-        if (dataFinal) params.append('data_final', dataFinal);
-        if (busca) params.append('busca', busca);
-        
-        window.location.href = '<?php echo $base; ?>/logs?' + params.toString();
+        carregarLogs(1);
     }
 
     function limparFiltros() {
@@ -233,8 +373,11 @@
         document.getElementById('filtroDataInicial').value = '';
         document.getElementById('filtroDataFinal').value = '';
         document.getElementById('filtroBusca').value = '';
-        window.location.href = '<?php echo $base; ?>/logs';
+        carregarLogs(1);
     }
+
+    // Carregar ao iniciar
+    document.addEventListener('DOMContentLoaded', () => carregarLogs(1));
 </script>
 
 <?php $render('footer'); ?>
