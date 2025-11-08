@@ -122,15 +122,16 @@ class SistemasController extends ctrl
      *   "ativo": true
      * }
      */
-    public function atualizarSistema()
+    public function atualizarSistema($idsistema)
     {
         try {
             $this->validarAutenticacao();
 
             $dados = ctrl::getBody();
-            ctrl::verificarCamposVazios($dados, ['idsistema']);
 
-            $idsistema = $dados['idsistema'];
+            if (!$idsistema) {
+                throw new Exception('ID do sistema não fornecido');
+            }
 
             // Verificar se sistema existe
             $sistema = SistemasModel::getById($idsistema);
@@ -171,12 +172,11 @@ class SistemasController extends ctrl
      * DELETE /deletarSistema?idsistema={id}
      * Headers: Authorization: Bearer {chave_api_admin}
      */
-    public function deletarSistema()
+    public function deletarSistema($idsistema)
     {
         try {
             $this->validarAutenticacao();
 
-            $idsistema = $_GET['idsistema'] ?? null;
             if (!$idsistema) {
                 throw new Exception('ID do sistema não fornecido');
             }
@@ -210,15 +210,16 @@ class SistemasController extends ctrl
      *   "idsistema": 1
      * }
      */
-    public function regenerarChaveApi()
+    public function regenerarChaveApi($idsistema)
     {
         try {
             $this->validarAutenticacao();
 
-            $dados = ctrl::getBody();
-            ctrl::verificarCamposVazios($dados, ['idsistema']);
+            if (!$idsistema) {
+                throw new Exception('ID do sistema não fornecido');
+            }
 
-            $idsistema = $dados['idsistema'];
+            $dados = ctrl::getBody();
 
             // Verificar se sistema existe
             $sistema = SistemasModel::getById($idsistema);

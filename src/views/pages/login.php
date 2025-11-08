@@ -436,7 +436,7 @@
             btnText.style.opacity = '0.5';
 
             try {
-                const response = await fetch('<?php echo $base; ?>/api/login', {
+                const response = await fetch('<?php echo $base; ?>/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -479,7 +479,7 @@
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verificando...';
 
             try {
-                const response = await fetch('<?php echo $base; ?>/api/confirmar-2fa', {
+                const response = await fetch('<?php echo $base; ?>/confirmar-2fa', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

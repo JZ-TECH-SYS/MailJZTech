@@ -16,7 +16,7 @@
         <?php if (!empty($sistema)): ?>
             <div class="card">
                 <div class="card-body">
-                    <form method="POST" action="<?php echo $base; ?>/atualizarSistema">
+                    <form id="formAtualizarSistema" method="POST">
                         <input type="hidden" name="idsistema" value="<?php echo $sistema['idsistema']; ?>">
 
                         <div class="mb-3">
@@ -67,7 +67,7 @@
                             <a href="<?php echo $base; ?>/sistemas" class="btn btn-outline-secondary">
                                 <i class="fas fa-arrow-left"></i> Voltar
                             </a>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" id="btnAtualizar">
                                 <i class="fas fa-check"></i> Atualizar
                             </button>
                         </div>
@@ -132,5 +132,52 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.getElementById('formAtualizarSistema').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const idsistema = document.querySelector('input[name="idsistema"]').value;
+        const btnAtualizar = document.getElementById('btnAtualizar');
+        const originalText = btnAtualizar.innerHTML;
+        
+        btnAtualizar.disabled = true;
+        btnAtualizar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Atualizando...';
+        
+        try {
+            const dados = {
+                nome: document.getElementById('nome').value,
+                descricao: document.getElementById('descricao').value,
+                nome_remetente: document.getElementById('nome_remetente').value,
+                ativo: document.getElementById('ativo').checked ? 1 : 0
+            };
+            
+            const response = await fetch(`<?php echo $base; ?>/atualizarSistema/${idsistema}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dados)
+            });
+            
+            const data = await response.json();
+            
+            if (data.mensagem) {
+                showToast('Sistema atualizado com sucesso!', 'success');
+                setTimeout(() => {
+                    window.location.href = '<?php echo $base; ?>/sistemas';
+                }, 1500);
+            } else {
+                showToast(data.error || 'Erro ao atualizar sistema', 'danger');
+            }
+        } catch (error) {
+            showToast('Erro ao conectar com o servidor', 'danger');
+            console.error(error);
+        } finally {
+            btnAtualizar.disabled = false;
+            btnAtualizar.innerHTML = originalText;
+        }
+    });
+</script>
 
 <?php $render('footer'); ?>

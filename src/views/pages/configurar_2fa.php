@@ -66,7 +66,7 @@
                     <h6 class="mt-4">Verificar Código</h6>
                     <p class="text-muted">Insira o código de 6 dígitos do seu aplicativo autenticador para confirmar:</p>
 
-                    <form method="POST" action="<?php echo $base; ?>/confirmar2fa">
+                    <form method="POST" action="<?php echo $base; ?>/confirmar-2fa">
                         <input type="hidden" name="secret" value="<?php echo htmlspecialchars($secret ?? ''); ?>">
 
                         <div class="mb-3">

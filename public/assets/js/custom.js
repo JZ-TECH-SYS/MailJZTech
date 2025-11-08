@@ -138,7 +138,7 @@ async function makeRequest(url, options = {}) {
 async function deletarSistema(idsistema, nomeSistema, baseUrl) {
     if (confirmDelete(`Tem certeza que deseja deletar o sistema "${nomeSistema}"? Esta ação não pode ser desfeita.`)) {
         try {
-            const response = await makeRequest(`${baseUrl}/deletarSistema?idsistema=${idsistema}`, {
+            const response = await makeRequest(`${baseUrl}/deletarSistema/${idsistema}`, {
                 method: 'DELETE'
             });
             
@@ -158,7 +158,7 @@ async function deletarSistema(idsistema, nomeSistema, baseUrl) {
 async function regenerarChave(idsistema, baseUrl) {
     if (confirmDelete('Tem certeza que deseja regenerar a chave de API? A chave anterior não funcionará mais.')) {
         try {
-            const response = await makeRequest(`${baseUrl}/regenerarChaveApi`, {
+            const response = await makeRequest(`${baseUrl}/regenerarChaveApi/${idsistema}`, {
                 method: 'POST',
                 body: JSON.stringify({ idsistema: idsistema })
             });

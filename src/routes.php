@@ -25,6 +25,8 @@ $router->get('/validaToken', 'LoginController@validaToken');
 // ==========================================
 $router->get('/configurar-2fa', 'LoginController@paginaConfigurar2FA', true);
 $router->get('/verificar-2fa', 'LoginController@paginaVerificar2FA', true);
+$router->post('/verificar-2fa', 'LoginController@verificarDoisFatores', true);
+$router->post('/verificar-2fa-backup', 'LoginController@verificarDoisFatoresBackup', true);
 
 // ==========================================
 // DASHBOARD (Views - GET)
