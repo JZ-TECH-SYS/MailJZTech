@@ -12,7 +12,7 @@
     <link href="<?php echo $base; ?>/assets/css/custom.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0a0e27 0%, #1a0f3a 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -27,17 +27,19 @@
         }
 
         .login-card {
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            border: none;
+            box-shadow: 0 0 30px rgba(0, 217, 255, 0.2);
+            border: 2px solid rgba(0, 217, 255, 0.3);
             border-radius: 15px;
             overflow: hidden;
+            background-color: #1a1f3a;
         }
 
         .login-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: linear-gradient(90deg, rgba(0, 217, 255, 0.1) 0%, rgba(179, 0, 255, 0.1) 100%);
+            color: #00d9ff;
             padding: 30px 20px;
             text-align: center;
+            border-bottom: 2px solid rgba(0, 217, 255, 0.3);
         }
 
         .login-header h1 {
@@ -58,34 +60,49 @@
 
         .login-body {
             padding: 40px 30px;
+            background-color: #1a1f3a;
         }
 
         .form-control {
             border-radius: 8px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid rgba(0, 217, 255, 0.3);
             padding: 12px 15px;
             font-size: 15px;
             transition: all 0.3s ease;
+            background-color: #141829;
+            color: #ffffff;
+        }
+
+        .form-control::placeholder {
+            color: #7a8199;
         }
 
         .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: #00d9ff;
+            background-color: #141829;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.3);
         }
 
         .btn-login {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
+            background: transparent;
+            border: 2px solid #00d9ff;
             border-radius: 8px;
             padding: 12px;
             font-weight: 600;
             font-size: 16px;
             transition: all 0.3s ease;
+            color: #00d9ff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
         }
 
         .btn-login:hover {
+            background: #00d9ff;
+            color: #0a0e27;
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.6);
         }
 
         .btn-login:active {
@@ -98,9 +115,12 @@
 
         .form-label {
             font-weight: 600;
-            color: #333;
+            color: #00d9ff;
             margin-bottom: 8px;
             display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.9rem;
         }
 
         .alert {
@@ -113,6 +133,7 @@
             width: 20px;
             height: 20px;
             margin-right: 8px;
+            color: #00d9ff;
         }
 
         /* Modal 2FA */
@@ -134,12 +155,13 @@
         }
 
         .modal-2fa-content {
-            background: white;
+            background: #1a1f3a;
+            border: 2px solid rgba(0, 217, 255, 0.3);
             border-radius: 15px;
             padding: 40px;
             max-width: 500px;
             width: 90%;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 30px rgba(0, 217, 255, 0.2);
             animation: slideIn 0.3s ease;
         }
 
@@ -160,13 +182,13 @@
         }
 
         .modal-2fa-header h2 {
-            color: #333;
+            color: #00d9ff;
             font-weight: bold;
             margin-bottom: 10px;
         }
 
         .modal-2fa-header p {
-            color: #666;
+            color: #b0b8d4;
             font-size: 14px;
         }
 
@@ -174,7 +196,8 @@
             text-align: center;
             margin: 30px 0;
             padding: 20px;
-            background: #f5f5f5;
+            background: #141829;
+            border: 1px solid rgba(0, 217, 255, 0.2);
             border-radius: 10px;
         }
 
