@@ -589,3 +589,36 @@ footer p {
     background-color: var(--neon-cyan);
     color: var(--bg-dark);
 }
+
+/* Stats Cards */
+.border-left-primary {
+    border-left: 4px solid var(--neon-cyan) !important;
+}
+
+.border-left-success {
+    border-left: 4px solid var(--success-color) !important;
+}
+
+.border-left-danger {
+    border-left: 4px solid var(--neon-pink) !important;
+}
+
+.border-left-warning {
+    border-left: 4px solid var(--warning-color) !important;
+}
+
+.border-left-info {
+    border-left: 4px solid var(--info-color) !important;
+}
+
+.h3 {
+    color: var(--text-primary);
+}
+
+.h6 {
+    color: var(--text-secondary);
+}
+
+.opacity-50 {
+    opacity: 0.5;
+}
