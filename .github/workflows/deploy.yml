@@ -9,14 +9,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Gerar .env a partir da variável API_ENV_FILE
+      
+      # =======================
+      # BACK-END (API PHP)
+      # =======================
+      - name: Setup PHP + Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+      
+      - name: Gerar .env da API (via Repository Variable)
+        env:
+          API_ENV_FILE: ${{ vars.API_ENV_FILE }}
         run: |
-          cat > .env << 'EOF'
-          ${{ secrets.API_ENV_FILE }}
-          EOF
-          echo "✓ .env gerado a partir da variável API_ENV_FILE"
-          echo "Conteúdo do .env (primeiras 3 linhas):"
-          head -n 3 .env
+          rm -f .env
+          printf '%s' "$API_ENV_FILE" > .env
+          echo "✓ .env da API criado"
+      
+      - name: Cache da vendor (API)
+        uses: actions/cache@v3
+        with:
+          path: ./vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+      
+      - name: Instalar dependências PHP (API)
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+      
+      # =======================
+      # DEPLOY
+      # =======================
       - name: Upload do projeto completo
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
