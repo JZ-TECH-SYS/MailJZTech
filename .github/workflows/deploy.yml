@@ -11,8 +11,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Gerar .env a partir da variável API_ENV_FILE
         run: |
-          echo "${{ secrets.API_ENV_FILE }}" > .env
+          cat > .env << 'EOF'
+          ${{ secrets.API_ENV_FILE }}
+          EOF
           echo "✓ .env gerado a partir da variável API_ENV_FILE"
+          echo "Conteúdo do .env (primeiras 3 linhas):"
+          head -n 3 .env
       - name: Upload do projeto completo
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
