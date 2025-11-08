@@ -296,8 +296,11 @@ nav .navbar-nav .nav-link.active {
 
 .form-label {
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--neon-cyan);
     margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
 }
 
 .form-text {
@@ -621,4 +624,27 @@ footer p {
 
 .opacity-50 {
     opacity: 0.5;
+}
+
+/* Footer Styles */
+footer.footer-dark {
+    background-color: rgba(10, 14, 39, 0.95);
+    border-top: 2px solid var(--neon-cyan);
+    color: var(--text-secondary);
+    box-shadow: 0 -5px 20px rgba(0, 217, 255, 0.1);
+}
+
+footer.footer-dark p {
+    color: var(--text-secondary);
+    margin: 0.5rem 0;
+}
+
+footer.footer-dark strong {
+    color: var(--neon-cyan);
+    text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+}
+
+footer.footer-dark .footer-copyright {
+    color: var(--text-muted);
+    font-size: 0.85rem;
 }
