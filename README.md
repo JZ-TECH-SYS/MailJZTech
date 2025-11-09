@@ -34,6 +34,7 @@ Toda documentação está em `docs/`. Comece por aqui:
 | [📘 docs/REFERENCIA_API.md](docs/REFERENCIA_API.md) | **⭐ Comece aqui!** Endpoints, exemplos de uso |
 | [docs/VISAO_GERAL.md](docs/VISAO_GERAL.md) | Arquitetura e como o sistema funciona |
 | [docs/GUIA_IMPLANTACAO.md](docs/GUIA_IMPLANTACAO.md) | Deploy em produção |
+| [docs/BACKUP_AUTOMATIZADO.md](docs/BACKUP_AUTOMATIZADO.md) | Sistema de backup MySQL → GCS com retenção |
 | [docs/CONFIGURACAO_GITHUB_SECRETS.md](docs/CONFIGURACAO_GITHUB_SECRETS.md) | Variáveis de ambiente e CI/CD |
 | [docs/INDEX.md](docs/INDEX.md) | Índice completo da documentação |
 
@@ -45,6 +46,7 @@ Toda documentação está em `docs/`. Comece por aqui:
 - ✅ **Dashboard responsivo** para gerenciamento
 - ✅ **Histórico completo** de envios e logs
 - ✅ **Múltiplos sistemas** com chave API individual
+- ✅ **Backup automatizado** (MySQL → GCS com compressão e retenção)
 - ✅ **CI/CD automático** (GitHub Actions → FTP)
 
 ## 🏗️ Estrutura
