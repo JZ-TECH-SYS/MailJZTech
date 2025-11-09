@@ -103,7 +103,7 @@ $router->post('/backup/limpar-antigos/{id}', 'BackupController@limparAntigos', t
 // ==========================================
 // BACKUPS (API - Consultas)
 // ==========================================
-$router->get('/backup/logs/{id}', 'BackupController@obterLogs', true);
+$router->get('/api/backup/logs/{id}', 'BackupController@obterLogs', true);
 $router->get('/backup/estatisticas', 'BackupController@obterEstatisticas', true);
 
 // ==========================================

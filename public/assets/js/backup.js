@@ -338,7 +338,7 @@ function verLogs(id) {
 // ========================================
 async function carregarLogs(idConfig) {
     try {
-        const response = await fetchComToken(`/backup/logs/${idConfig}?detalhado=true&limite=100`);
+        const response = await fetchComToken(`/api/backup/logs/${idConfig}?detalhado=true&limite=100`);
         const data = await response.json();
 
         const tbody = document.querySelector('#tabelaLogs tbody');
