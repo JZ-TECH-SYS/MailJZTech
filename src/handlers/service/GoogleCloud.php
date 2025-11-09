@@ -18,8 +18,13 @@ class GoogleCloud
      */
     private static function getStorageClient()
     {
+        $keyPath = __DIR__ . '/bkp.json';
+        if (!file_exists($keyPath)) {
+            throw new Exception("Credenciais do GCS não encontradas em {$keyPath}. Certifique-se de que o deploy gerou o arquivo bkp.json.");
+        }
+
         return new StorageClient([
-            'keyFilePath' => __DIR__ . '/bkp.json'
+            'keyFilePath' => $keyPath
         ]);
     }
 

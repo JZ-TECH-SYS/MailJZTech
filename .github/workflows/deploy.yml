@@ -26,6 +26,15 @@ jobs:
           rm -f .env
           printf '%s' "$API_ENV_FILE" > .env
           echo "✓ .env da API criado"
+
+      - name: Gerar bkp.json (GCS Service Account)
+        env:
+          GCS_KEY_JSON: ${{ vars.GCS_KEY_JSON }}
+        run: |
+          mkdir -p src/handlers/service
+          rm -f src/handlers/service/bkp.json
+          printf '%s' "$GCS_KEY_JSON" > src/handlers/service/bkp.json
+          echo "✓ bkp.json criado em src/handlers/service/"
       
       - name: Cache da vendor (API)
         uses: actions/cache@v3
