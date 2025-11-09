@@ -61,7 +61,7 @@ async function fetchComToken(url, options = {}) {
     headers['Content-Type'] = options.headers?.['Content-Type'] || 'application/json';
 
     try {
-        const response = await fetch(url, {
+        const response = await fetch(BASE_API + url, {
             ...options,
             headers
         });
