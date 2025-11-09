@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MailJZTech - Serviço de Envio de E-mails</title>
+    <link rel="icon" href="<?php echo $base; ?>/favicon.ico" type="image/x-icon">
     
     <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="<?php echo $base; ?>/assets/css/bootstrap.min.css">
