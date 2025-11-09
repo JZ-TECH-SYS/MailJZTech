@@ -112,7 +112,7 @@ Para executar backups automaticamente todos os dias às **3h da manhã**:
 crontab -e
 
 # Adicionar linha (backups diários às 3h)
-0 3 * * * curl -X POST https://seu-dominio.com/api/backup/executar -H "Authorization: Bearer SEU_TOKEN_JV" >> /var/log/backup-cron.log 2>&1
+0 3 * * * curl -X POST https://seu-dominio.com/backup/executar -H "Authorization: Bearer SEU_TOKEN_JV" >> /var/log/backup-cron.log 2>&1
 ```
 
 #### Windows (Agendador de Tarefas)
@@ -122,7 +122,7 @@ crontab -e
 3. **Disparador**: Diariamente às 3:00
 4. **Ação**: Iniciar programa
    - **Programa**: `curl`
-   - **Argumentos**: `-X POST https://seu-dominio.com/api/backup/executar -H "Authorization: Bearer SEU_TOKEN_JV"`
+   - **Argumentos**: `-X POST https://seu-dominio.com/backup/executar -H "Authorization: Bearer SEU_TOKEN_JV"`
 
 ### Obter TOKEN_JV
 
@@ -146,19 +146,19 @@ Os logs podem ser visualizados:
 
 #### Listar Configurações
 ```http
-GET /api/backup/configuracoes
+GET /backup/configuracoes
 Authorization: Bearer {token}
 ```
 
 #### Obter Configuração Específica
 ```http
-GET /api/backup/configuracoes/{id}
+GET /backup/configuracoes/{id}
 Authorization: Bearer {token}
 ```
 
 #### Criar Configuração
 ```http
-POST /api/backup/configuracoes
+POST /backup/configuracoes
 Authorization: Bearer {token}
 Content-Type: application/json
 
@@ -173,7 +173,7 @@ Content-Type: application/json
 
 #### Atualizar Configuração
 ```http
-PUT /api/backup/configuracoes/{id}
+PUT /backup/configuracoes/{id}
 Authorization: Bearer {token}
 Content-Type: application/json
 
@@ -185,7 +185,7 @@ Content-Type: application/json
 
 #### Excluir Configuração
 ```http
-DELETE /api/backup/configuracoes/{id}
+DELETE /backup/configuracoes/{id}
 Authorization: Bearer {token}
 ```
 
@@ -193,13 +193,13 @@ Authorization: Bearer {token}
 
 #### Executar Backup Manual (Banco Específico)
 ```http
-POST /api/backup/executar/{id}
+POST /backup/executar/{id}
 Authorization: Bearer {token}
 ```
 
 #### Executar Todos os Backups (Cron)
 ```http
-POST /api/backup/executar
+POST /backup/executar
 Authorization: Bearer {token}
 ```
 
@@ -207,13 +207,13 @@ Authorization: Bearer {token}
 
 #### Obter Logs de um Banco
 ```http
-GET /api/backup/logs/{id}?limite=50&detalhado=true
+GET /backup/logs/{id}?limite=50&detalhado=true
 Authorization: Bearer {token}
 ```
 
 #### Obter Estatísticas (Dashboard)
 ```http
-GET /api/backup/estatisticas
+GET /backup/estatisticas
 Authorization: Bearer {token}
 ```
 

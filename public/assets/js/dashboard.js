@@ -39,7 +39,7 @@ async function carregarDadosDashboard() {
         const qs = idsistema ? `?idsistema=${encodeURIComponent(idsistema)}` : '';
 
         // Usa helper com token (auth.js)
-        const response = await fetchComToken(`/api/dashboard/stats${qs}`, {
+        const response = await fetchComToken(`/dashboard/stats${qs}`, {
             method: 'GET'
         });
 

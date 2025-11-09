@@ -20,13 +20,13 @@ Autenticação para rotas privadas: header `Authorization: Bearer <token>`.
 ## Dashboard
 
 - GET `/dashboard` (privado)
-- GET `/api/dashboard/stats` (privado)
+- GET `/dashboard/stats` (privado)
 
 ## Logs
 
 - GET `/logs` (privado)
-- GET `/api/logs/listar` (privado)
-- GET `/api/logs/detalhe/{id}` (privado)
+- GET `/logs/listar` (privado)
+- GET `/logs/detalhe/{id}` (privado)
 
 ## Sistemas
 

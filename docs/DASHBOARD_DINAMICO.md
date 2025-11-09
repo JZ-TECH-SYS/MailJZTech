@@ -94,7 +94,7 @@ Arquivo: `src/views/pages/dashboard/index.php`
 
 ```php
 // src/routes.php
-$router->get('/api/dashboard/stats', 'DashboardController@obterEstatisticas', true);
+$router->get('/dashboard/stats', 'DashboardController@obterEstatisticas', true);
 ```
 
 ## 🔄 Fluxo de Dados
@@ -110,7 +110,7 @@ $router->get('/api/dashboard/stats', 'DashboardController@obterEstatisticas', tr
 
 2. JavaScript carrega automaticamente
    └─> dashboard.js executa initDashboard()
-       └─> Faz fetch para /api/dashboard/stats
+       └─> Faz fetch para /dashboard/stats
            └─> DashboardController::obterEstatisticas()
                └─> EmailsHandler::obterDadosDashboard($idsistema)
                    ├─> Emails_enviados::obterEstatisticas() [SQL complexo]
@@ -129,7 +129,7 @@ $router->get('/api/dashboard/stats', 'DashboardController@obterEstatisticas', tr
 
 ## 📊 Estrutura de Resposta da API
 
-### Endpoint: `GET /api/dashboard/stats`
+### Endpoint: `GET /dashboard/stats`
 
 **Headers:**
 ```
@@ -225,7 +225,7 @@ function escapeHtml(text) {
 
 ### 2. Verificar Rede (DevTools)
 ```
-Request: GET /api/dashboard/stats
+Request: GET /dashboard/stats
 Status: 200 OK
 Response: { result: {...}, error: false }
 ```

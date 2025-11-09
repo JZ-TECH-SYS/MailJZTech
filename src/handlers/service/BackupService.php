@@ -75,7 +75,7 @@ class BackupService
 
             // Fallback: tenta com parâmetro --password=
             $comandoFallback = sprintf(
-                '%s --user=%s --password=%s --host=%s --port=%s --single-transaction --routines --triggers --events --default-character-set=utf8mb4 --add-drop-database --add-drop-table --set-gtid-purged=OFF %s --result-file=%s 2>&1',
+                '%s --user=%s --password=%s --host=%s --port=%s --single-transaction --skip-routines --skip-triggers --events --default-character-set=utf8mb4 --add-drop-database --add-drop-table --set-gtid-purged=OFF %s --result-file=%s 2>&1',
                 $mysqldump,
                 escapeshellarg($usuario),
                 escapeshellarg($senha),
