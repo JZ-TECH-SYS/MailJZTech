@@ -72,6 +72,7 @@ async function carregarEstatisticas() {
         }
     } catch (error) {
         console.error('Erro ao carregar estatísticas:', error);
+        toastErro('Erro ao carregar estatísticas');
     }
 }
 
@@ -144,7 +145,7 @@ async function carregarConfiguracoes() {
         }
     } catch (error) {
         console.error('Erro ao carregar configurações:', error);
-        mostrarErro('Erro ao carregar configurações: ' + error.message);
+        toastErro('Erro ao carregar configurações: ' + error.message);
     }
 }
 
@@ -177,7 +178,7 @@ async function abrirModalEditar(id) {
         }
     } catch (error) {
         console.error('Erro ao carregar configuração:', error);
-        mostrarErro('Erro ao carregar configuração: ' + error.message);
+        toastErro('Erro ao carregar configuração: ' + error.message);
     }
 }
 
@@ -240,7 +241,7 @@ async function salvarConfiguracao() {
 }
 
 async function excluirConfiguracao(id, nome) {
-    if (!confirm(`Tem certeza que deseja excluir a configuração do banco "${nome}"?\n\nTodos os logs associados também serão removidos.`)) {
+    if (!await confirmarExclusao(nome, 'Todos os logs associados também serão removidos.')) {
         return;
     }
 
@@ -260,7 +261,7 @@ async function excluirConfiguracao(id, nome) {
         }
     } catch (error) {
         console.error('Erro ao excluir configuração:', error);
-        mostrarErro('Erro ao excluir configuração: ' + error.message);
+        toastErro('Erro ao excluir configuração: ' + error.message);
     }
 }
 
@@ -268,11 +269,11 @@ async function excluirConfiguracao(id, nome) {
 // EXECUÇÃO DE BACKUPS
 // ========================================
 async function executarBackup(id) {
-    if (!confirm('Deseja executar o backup agora?\n\nEsta operação pode demorar alguns minutos.')) {
+    if (!await confirmarAcao('Deseja executar o backup agora?', 'Execução de Backup', 'Sim, executar!', 'Cancelar')) {
         return;
     }
 
-    mostrarInfo('Executando backup... Por favor aguarde.');
+    mostrarLoad('Executando backup... Por favor aguarde.');
 
     try {
         const response = await fetchComToken(`/backup/executar/${id}`, {
@@ -282,26 +283,29 @@ async function executarBackup(id) {
         const data = await response.json();
 
         if (!data.error) {
+            fecharLoad();
             mostrarSucesso('Backup executado com sucesso!');
             carregarConfiguracoes();
             carregarEstatisticas();
         } else {
-            mostrarErro(data.result || 'Erro ao executar backup');
+            fecharLoad();
+            toastErro(data.result || 'Erro ao executar backup');
         }
     } catch (error) {
         console.error('Erro ao executar backup:', error);
-        mostrarErro('Erro ao executar backup: ' + error.message);
+        fecharLoad();
+        toastErro('Erro ao executar backup: ' + error.message);
     }
 }
 
 async function executarBackupManual() {
     if (typeof idConfig === 'undefined') return;
     
-    if (!confirm(`Deseja executar o backup de "${nomeConfig}" agora?\n\nEsta operação pode demorar alguns minutos.`)) {
+    if (!await confirmarAcao(`Deseja executar o backup de "${nomeConfig}"?`, 'Execução Manual', 'Sim, executar!', 'Cancelar')) {
         return;
     }
 
-    mostrarInfo('Executando backup... Por favor aguarde.');
+    mostrarLoad('Executando backup... Por favor aguarde.');
 
     try {
         const response = await fetchComToken(`/backup/executar/${idConfig}`, {
@@ -311,14 +315,17 @@ async function executarBackupManual() {
         const data = await response.json();
 
         if (!data.error) {
+            fecharLoad();
             mostrarSucesso('Backup executado com sucesso!');
             setTimeout(() => carregarLogs(idConfig), 2000);
         } else {
-            mostrarErro(data.result || 'Erro ao executar backup');
+            fecharLoad();
+            toastErro(data.result || 'Erro ao executar backup');
         }
     } catch (error) {
         console.error('Erro ao executar backup:', error);
-        mostrarErro('Erro ao executar backup: ' + error.message);
+        fecharLoad();
+        toastErro('Erro ao executar backup: ' + error.message);
     }
 }
 
@@ -338,10 +345,22 @@ async function carregarLogs(idConfig) {
 
         if (!data.error && data.result && data.result.length > 0) {
             const logs = data.result;
-            tbody.innerHTML = logs.map(log => {
+            tbody.innerHTML = logs.map((log, index) => {
                 const statusBadge = getStatusBadge(log.status);
                 const tamanho = log.tamanho_mb ? `${log.tamanho_mb} MB` : '-';
                 const duracao = log.duracao_segundos ? `${log.duracao_segundos}s` : '-';
+
+                // Armazenar mensagem de erro em um atributo data
+                let btnErro = '';
+                if (log.status === 'error') {
+                    const erroId = `erro-${log.idbackup_execucao_log || index}`;
+                    btnErro = `<button class="btn btn-sm btn-danger" 
+                                       onclick="verErroById('${erroId}')" 
+                                       data-erro-msg="${escapeHtml(log.mensagem_erro || 'Sem detalhes')}"
+                                       id="${erroId}">
+                                    <i class="fas fa-exclamation-triangle"></i> Ver Erro
+                               </button>`;
+                }
 
                 return `
                     <tr>
@@ -355,14 +374,7 @@ async function carregarLogs(idConfig) {
                                 : '-'
                             }
                         </td>
-                        <td>
-                            ${log.status === 'error' 
-                                ? `<button class="btn btn-sm btn-danger" onclick='verErro(${JSON.stringify(log.mensagem_erro)})'>
-                                    <i class="fas fa-exclamation-triangle"></i> Ver Erro
-                                   </button>` 
-                                : ''
-                            }
-                        </td>
+                        <td>${btnErro}</td>
                     </tr>
                 `;
             }).join('');
@@ -378,13 +390,35 @@ async function carregarLogs(idConfig) {
         }
     } catch (error) {
         console.error('Erro ao carregar logs:', error);
-        mostrarErro('Erro ao carregar logs: ' + error.message);
+        toastErro('Erro ao carregar logs: ' + error.message);
+    }
+}
+
+function verErroById(erroId) {
+    const btn = document.getElementById(erroId);
+    if (btn) {
+        const mensagemErro = btn.getAttribute('data-erro-msg');
+        verErro(mensagemErro);
     }
 }
 
 function verErro(mensagemErro) {
-    document.getElementById('erroDetalhes').textContent = mensagemErro || 'Sem detalhes do erro';
-    modalErro.show();
+    // Tentar parsear se for JSON
+    let mensagemFormatada = mensagemErro || 'Sem detalhes do erro';
+    
+    try {
+        const obj = JSON.parse(mensagemErro);
+        mensagemFormatada = JSON.stringify(obj, null, 2);
+    } catch (e) {
+        // Não é JSON, manter como texto
+        mensagemFormatada = mensagemErro;
+    }
+    
+    mostrarAlertaHTML(
+        'Erro no Backup',
+        `<pre style="text-align: left; background: #f8d7da; padding: 15px; border-radius: 5px; color: #721c24; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(mensagemFormatada)}</pre>`,
+        'error'
+    );
 }
 
 // ========================================
@@ -418,17 +452,4 @@ function escapeHtml(text) {
     return text.replace(/[&<>"']/g, m => map[m]);
 }
 
-function mostrarSucesso(mensagem) {
-    // Implementar conforme sistema de notificações do projeto
-    alert(mensagem);
-}
 
-function mostrarErro(mensagem) {
-    // Implementar conforme sistema de notificações do projeto
-    alert('Erro: ' + mensagem);
-}
-
-function mostrarInfo(mensagem) {
-    // Implementar conforme sistema de notificações do projeto
-    console.info(mensagem);
-}

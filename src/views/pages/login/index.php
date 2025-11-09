@@ -6,6 +6,7 @@
     <title>Login - MailJZTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo $base; ?>/assets/css/sweetalert2.min.css">
     <link href="<?php echo $base; ?>/assets/css/custom.css" rel="stylesheet">
     <style>
         body {
@@ -760,6 +761,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="<?php echo $base; ?>/assets/js/sweetalert2.js"></script>
     <script>
         const base = '<?php echo $base; ?>';
 
@@ -878,9 +881,12 @@
                 const btn = event.target.closest('button');
                 const originalText = btn.innerHTML;
                 btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+                toastSucesso('Secret copiado!');
                 setTimeout(() => {
                     btn.innerHTML = originalText;
                 }, 2000);
+            }).catch(() => {
+                toastErro('Erro ao copiar secret');
             });
         }
 
@@ -893,9 +899,12 @@
                 const btn = event.target.closest('button');
                 const originalText = btn.innerHTML;
                 btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+                toastSucesso('Códigos de backup copiados!');
                 setTimeout(() => {
                     btn.innerHTML = originalText;
                 }, 2000);
+            }).catch(() => {
+                toastErro('Erro ao copiar códigos');
             });
         }
 
@@ -925,7 +934,7 @@
                 const data = envelope.result || {};
 
                 if (envelope.error) {
-                    alert((data && data.mensagem) || 'Erro ao fazer login');
+                    toastErro((data && data.mensagem) || 'Erro ao fazer login');
                 } else {
                     // Salvar token temporário (será sobrescrito após 2FA)
                     if (data.token) {
@@ -950,7 +959,7 @@
                         const initEnvelope = await initResp.json();
                         console.debug('INICIAR-2FA envelope:', initEnvelope);
                         if (initEnvelope.error) {
-                            alert('Falha ao iniciar configuração 2FA');
+                            toastErro('Falha ao iniciar configuração 2FA');
                         } else {
                             mostrarModal2FA(initEnvelope.result);
                         }
@@ -960,7 +969,7 @@
                     }
                 }
             } catch (error) {
-                alert('Erro ao conectar com o servidor');
+                toastErro('Erro ao conectar com o servidor');
                 console.error(error);
             } finally {
                 spinner.classList.remove('show');
@@ -1010,14 +1019,17 @@
                 if (!envelope.error && (data.success || envelope.result === 'Logout realizado com sucesso')) {
                     // Token já foi salvo no primeiro login, agora só redireciona
                     console.debug('✓ 2FA confirmado, redirecionando...');
-                    window.location.href = '<?= $base; ?>/dashboard';
+                    toastSucesso('2FA confirmado com sucesso!', 1500);
+                    setTimeout(() => {
+                        window.location.href = '<?= $base; ?>/dashboard';
+                    }, 1500);
                 } else {
-                    alert(data.mensagem || 'Código inválido');
+                    toastErro(data.mensagem || 'Código inválido');
                     document.getElementById('codigoTOTP').value = '';
                     document.getElementById('codigoTOTP').focus();
                 }
             } catch (error) {
-                alert('Erro ao verificar código');
+                toastErro('Erro ao verificar código');
                 console.error(error);
             } finally {
                 btn.disabled = false;

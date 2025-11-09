@@ -12,6 +12,10 @@
         <!-- Bootstrap 5 JS -->
         <script src="<?php echo $base; ?>/assets/js/bootstrap.bundle.min.js"></script>
 
+        <!-- SweetAlert2 -->
+        <script src="<?php echo $base; ?>/assets/js/sweetalert2.min.js"></script>
+        <script src="<?php echo $base; ?>/assets/js/sweetalert2.js"></script>
+
         <!-- Custom JS -->
         <script src="<?php echo $base; ?>/assets/js/custom.js"></script>
         </body>

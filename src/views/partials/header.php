@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MailJZTech - Serviço de Envio de E-mails</title>
+    <link rel="icon" href="<?php echo $base; ?>/favicon.ico" type="image/x-icon">
     
     <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="<?php echo $base; ?>/assets/css/bootstrap.min.css">
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="<?php echo $base; ?>/assets/css/custom.css">
+    <link rel="stylesheet" href="<?php echo $base; ?>/assets/css/sweetalert2.min.css">
     <!-- Font Awesome (opcional) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 

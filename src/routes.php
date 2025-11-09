@@ -96,8 +96,8 @@ $router->delete('/backup/configuracoes/{id}', 'BackupController@excluir', true);
 // ==========================================
 // BACKUPS (API - Execução)
 // ==========================================
+$router->get('/backup-executar', 'BackupController@executarCron'); // Cron (requer TOKEN_JV)
 $router->post('/backup/executar/{id}', 'BackupController@executarManual', true);
-$router->post('/backup/executar', 'BackupController@executarCron', true); // Cron (requer TOKEN_JV)
 $router->post('/backup/limpar-antigos/{id}', 'BackupController@limparAntigos', true);
 
 // ==========================================

@@ -192,13 +192,20 @@ class BackupController extends ctrl
     }
 
     /**
-     * POST /api/backup/executar
+     * GET backup-executar
      * Executa backup de todos os bancos ativos (chamado pelo cron).
      * Requer autenticação via TOKEN_JV.
      */
     public function executarCron(): void
     {
         try {
+            $token = $_GET['token'] ?? null;
+            if ($token !== 'dbjztech@137@@@@Ç@@@') {
+                throw new Exception("Token de autenticação inválido");
+            }
+
+            ctrl::log("Iniciando execução de backups via cron...");
+
             $resultados = BackupExecucao::executarTodos();
 
             // Contar sucessos e erros

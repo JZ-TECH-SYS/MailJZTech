@@ -138,12 +138,13 @@
             }
         } catch (error) {
             console.error('Erro ao carregar sistemas:', error);
+            toastErro('Erro ao carregar sistemas: ' + error.message);
             const tbody = document.querySelector('#tabelaSistemas tbody');
             tbody.innerHTML = `
                 <tr>
                     <td colspan="6" class="text-center py-4">
                         <i class="fas fa-times-circle text-danger fa-3x mb-3"></i>
-                        <p class="text-danger">Erro ao carregar sistemas: ${error.message}</p>
+                        <p class="text-danger">Erro ao carregar sistemas: ${escapeHtml(error.message)}</p>
                         <button class="btn btn-primary" onclick="carregarSistemas()">
                             <i class="fas fa-sync"></i> Tentar Novamente
                         </button>
@@ -164,6 +165,7 @@
         const chaveInput = document.getElementById('chaveApiInput');
         const button = event.target.closest('button');
         copyToClipboard(chaveInput.value, button);
+        toastSucesso('Chave de API copiada!');
     }
 
     function escapeHtml(text) {

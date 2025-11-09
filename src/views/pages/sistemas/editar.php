@@ -160,13 +160,15 @@
             const data = await response.json();
             
             if (!data.error && data.result) {
-                alert('✅ ' + (data.result.mensagem || 'Sistema atualizado com sucesso!'));
-                window.location.href = '<?php echo $base; ?>/sistemas';
+                mostrarSucesso(data.result.mensagem || 'Sistema atualizado com sucesso!');
+                setTimeout(() => {
+                    window.location.href = '<?php echo $base; ?>/sistemas';
+                }, 1500);
             } else {
-                alert('❌ ' + (data.result || 'Erro ao atualizar sistema'));
+                toastErro(data.result || 'Erro ao atualizar sistema');
             }
         } catch (error) {
-            alert('❌ Erro ao conectar com o servidor: ' + error.message);
+            toastErro('Erro ao conectar com o servidor: ' + error.message);
             console.error(error);
         } finally {
             btnAtualizar.disabled = false;
