@@ -225,6 +225,17 @@ class BackupController extends ctrl
 
             ctrl::response($data, 200);
         } catch (Exception $e) {
+
+            ctrl::log("Erro ao executar backups via cron: " . $e->getMessage());
+            Emails::enviarRelatorioBackupsCron([
+                'mensagem' => 'Erro ao executar backups via cron: ' . $e->getMessage(),
+                'total' => 0,
+                'sucesso' => 0,
+                'erros' => 9999999,
+                'detalhes' => [],
+                'data_execucao' => date('Y-m-d H:i:s')
+            ]);
+
             ctrl::rejectResponse($e);
         }
     }
