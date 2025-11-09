@@ -83,8 +83,8 @@ class EmailController extends ctrl
     }
 
     /**
-     * Lista e-mails enviados de um sistema
-     * GET /api/emails/listar?idsistema=1&limite=50&offset=0
+     * Lista e-mails enviados de um sistema (ou todos se não informado)
+     * GET /listarEmails?idsistema=1&limite=50&pagina=1&status=enviado
      *
      * @return void
      */
@@ -92,30 +92,45 @@ class EmailController extends ctrl
     {
         try {
             // Obter parâmetros da query string
-            $idsistema = $_GET['idsistema'] ?? null;
-            $limite = (int)($_GET['limite'] ?? 50);
-            $offset = (int)($_GET['offset'] ?? 0);
+            $idsistema = filter_input(INPUT_GET, 'idsistema', FILTER_VALIDATE_INT);
+            $limite = (int)($_GET['limite'] ?? 20);
+            $pagina = (int)($_GET['pagina'] ?? 1);
+            $status = $_GET['status'] ?? null;
+            
+            $offset = ($pagina - 1) * $limite;
 
-            // Validar sistema
-            if (!$idsistema) {
-                throw new \Exception('idsistema é obrigatório');
-            }
-
-            // Validar sistema existe via handler
-            if (!SistemasHandler::existeId($idsistema)) {
+            // Se sistema informado, validar existência
+            if (!empty($idsistema) && !SistemasHandler::existeId($idsistema)) {
                 throw new \Exception('Sistema não encontrado');
             }
 
-            // Chamar handler (Controller → Handler)
+            // Chamar handler (Controller → Handler) - aceita null para listar todos
             $emails = EmailsHandler::listar($idsistema, $limite, $offset);
             $total = EmailsHandler::contar($idsistema);
+            
+            // Aplicar filtro de status se informado (pós-processamento simples)
+            if (!empty($status)) {
+                $emails = array_filter($emails, function($e) use ($status) {
+                    return $e['status'] === $status;
+                });
+                $emails = array_values($emails); // Reindexar
+            }
+
+            // Calcular total de páginas
+            $totalPaginas = $total > 0 ? ceil($total / $limite) : 1;
+            
+            // Obter estatísticas para os cards
+            $stats = EmailsHandler::obterEstatisticas($idsistema);
 
             // Retornar resultado
             ctrl::response([
                 'emails' => $emails,
                 'total' => $total,
-                'limite' => $limite,
-                'offset' => $offset
+                'enviados' => (int)($stats['enviados'] ?? 0),
+                'erros' => (int)($stats['erros'] ?? 0),
+                'pagina_atual' => $pagina,
+                'paginas_totais' => $totalPaginas,
+                'limite' => $limite
             ], 200);
 
         } catch (\Exception $e) {
@@ -250,6 +265,49 @@ class EmailController extends ctrl
 
         } catch (\Exception $e) {
             ctrl::log("Erro em validarConfiguracao: " . $e->getMessage());
+            ctrl::rejectResponse($e);
+        }
+    }
+
+    /**
+     * Detalhe de e-mail (API estilo REST via rota /detalheEmail/{idemail})
+     * GET /detalheEmail/{idemail}
+     * Usa handler para buscar e valida pertencimento ao sistema se idsistema informado
+     */
+    public function detalheEmail($args = [])
+    {
+        try {
+            $idemail = $args['id'] ?? $args['idemail'] ?? null;
+            if (!$idemail) {
+                throw new \Exception('ID do e-mail não informado');
+            }
+
+            // Sistema opcional via query (?idsistema=) para validar pertencimento; se não vier, busca geral
+            $idsistemaQS = filter_input(INPUT_GET, 'idsistema', FILTER_VALIDATE_INT);
+            $idsistema = $idsistemaQS ?: null;
+
+            // Se sistema informado, valida existência
+            if (!empty($idsistema) && !\src\handlers\Sistemas::existeId($idsistema)) {
+                throw new \Exception('Sistema não encontrado');
+            }
+
+            // Handler obter exige idsistema para validar pertencimento; se não informado, fazemos busca simples direta
+            $email = null;
+            if (!empty($idsistema)) {
+                $email = EmailsHandler::obter($idemail, $idsistema);
+            } else {
+                // Busca sem validação de sistema: usamos model diretamente via handler adaptado (criamos método interno)
+                $emailModel = \src\models\Emails_enviados::getById($idemail);
+                $email = $emailModel ?: false;
+            }
+
+            if (!$email) {
+                ctrl::response(['mensagem' => 'E-mail não encontrado'], 404);
+                return;
+            }
+
+            ctrl::response($email, 200);
+        } catch (\Exception $e) {
             ctrl::rejectResponse($e);
         }
     }

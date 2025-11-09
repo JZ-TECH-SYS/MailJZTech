@@ -4,4 +4,5 @@ SELECT
     SUM(CASE WHEN status = 'erro' THEN 1 ELSE 0 END) as erros,
     SUM(CASE WHEN status = 'pendente' THEN 1 ELSE 0 END) as pendentes
 FROM emails_enviados 
-WHERE idsistema = :idsistema
+-- Filtro opcional por sistema: quando :idsistema = 0, considera TODOS os sistemas
+WHERE (:idsistema = 0 OR idsistema = :idsistema)

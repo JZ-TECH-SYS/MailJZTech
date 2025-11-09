@@ -70,14 +70,75 @@ class EmailService
                 }
             }
 
-            // Anexos (opcional)
+            // Anexos (opcional) - Suporta caminho, base64 ou URL
             if ($anexos && is_array($anexos)) {
                 foreach ($anexos as $anexo) {
-                    if (isset($anexo['caminho']) && file_exists($anexo['caminho'])) {
-                        $mail->addAttachment(
-                            $anexo['caminho'],
-                            $anexo['nome'] ?? basename($anexo['caminho'])
+                    // Anexo via CAMINHO de arquivo local
+                    if (isset($anexo['caminho']) && !empty($anexo['caminho'])) {
+                        if (file_exists($anexo['caminho'])) {
+                            $mail->addAttachment(
+                                $anexo['caminho'],
+                                $anexo['nome'] ?? basename($anexo['caminho'])
+                            );
+                        } else {
+                            throw new Exception("Arquivo não encontrado: {$anexo['caminho']}");
+                        }
+                    }
+                    // Anexo via BASE64
+                    elseif (isset($anexo['base64']) && !empty($anexo['base64']) && isset($anexo['nome'])) {
+                        // Remove prefixo data:image/png;base64, se houver
+                        $base64Data = $anexo['base64'];
+                        if (strpos($base64Data, 'base64,') !== false) {
+                            $base64Data = explode('base64,', $base64Data)[1];
+                        }
+                        
+                        // Decodifica base64
+                        $fileData = base64_decode($base64Data);
+                        if ($fileData === false) {
+                            throw new Exception("Base64 inválido para anexo: {$anexo['nome']}");
+                        }
+                        
+                        // Adiciona anexo via string
+                        $mail->addStringAttachment(
+                            $fileData,
+                            $anexo['nome'],
+                            'base64',
+                            $anexo['type'] ?? 'application/octet-stream'
                         );
+                    }
+                    // Anexo via URL/LINK (download automático)
+                    elseif (isset($anexo['url']) && !empty($anexo['url'])) {
+                        $url = $anexo['url'];
+                        
+                        // Valida se é URL válida
+                        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                            throw new Exception("URL inválida: {$url}");
+                        }
+                        
+                        // Tenta fazer download do arquivo
+                        $fileData = @file_get_contents($url);
+                        
+                        if ($fileData === false) {
+                            throw new Exception("Não foi possível baixar o arquivo da URL: {$url}");
+                        }
+                        
+                        // Nome do arquivo (usa o fornecido ou extrai da URL)
+                        $fileName = $anexo['nome'] ?? basename(parse_url($url, PHP_URL_PATH));
+                        if (empty($fileName) || $fileName === '/') {
+                            $fileName = 'anexo_' . time() . '.pdf';
+                        }
+                        
+                        // Adiciona anexo via string
+                        $mail->addStringAttachment(
+                            $fileData,
+                            $fileName,
+                            'base64',
+                            $anexo['type'] ?? 'application/octet-stream'
+                        );
+                    }
+                    // Se não tem caminho, base64 nem URL
+                    else {
+                        throw new Exception("Anexo inválido: deve conter 'caminho', 'base64' + 'nome', ou 'url'");
                     }
                 }
             }

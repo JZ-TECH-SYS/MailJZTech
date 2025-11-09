@@ -24,12 +24,16 @@ class Emails_enviados extends Model
      */
     public static function getBySystem($idsistema, $limite = 50, $offset = 0)
     {
-        return self::select()
-            ->where('idsistema', $idsistema)
+        $query = self::select()
             ->orderBy('data_criacao', 'DESC')
             ->limit($limite)
-            ->offset($offset)
-            ->get();
+            ->offset($offset);
+
+        if (!empty($idsistema)) {
+            $query->where('idsistema', $idsistema);
+        }
+
+        return $query->get();
     }
 
     /**
@@ -99,16 +103,20 @@ class Emails_enviados extends Model
     }
 
     /**
-     * Conta total de e-mails de um sistema
+     * Conta total de e-mails de um sistema (ou todos se null)
      *
-     * @param int $idsistema ID do sistema
+     * @param int|null $idsistema ID do sistema (null = todos)
      * @return int Retorna o total de e-mails
      */
-    public static function countBySystem($idsistema)
+    public static function countBySystem($idsistema = null)
     {
-        $result = self::select()
-            ->where('idsistema', $idsistema)
-            ->count();
+        $query = self::select();
+        
+        if (!empty($idsistema)) {
+            $query->where('idsistema', $idsistema);
+        }
+        
+        $result = $query->count();
         
         return $result ?? 0;
     }
@@ -122,13 +130,25 @@ class Emails_enviados extends Model
      */
     public static function obterEstatisticas($idsistema)
     {
+        // Quando $idsistema for null/0, enviar 0 para SQL tratar como geral
         $params = [
-            'idsistema' => $idsistema
+            'idsistema' => (!empty($idsistema) && is_numeric($idsistema)) ? (int)$idsistema : 0
         ];
         
         $resultado = Database::switchParams($params, 'emails_obter_estatisticas', true);
         
         return !empty($resultado['retorno']) ? $resultado['retorno'][0] : false;
+    }
+
+    /**
+     * Obtém últimos e-mails globalmente (todos os sistemas)
+     */
+    public static function getRecentes($limite = 10)
+    {
+        return self::select(['idemail','destinatario','assunto','status','data_envio','data_criacao'])
+            ->orderBy('data_criacao', 'DESC')
+            ->limit($limite)
+            ->get();
     }
 
     /**

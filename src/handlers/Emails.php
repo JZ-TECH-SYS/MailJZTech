@@ -214,4 +214,37 @@ class Emails
     {
         return EmailService::validateEmailConfiguration();
     }
+
+    /**
+     * Obtém dados do dashboard (estatísticas + últimos e-mails)
+     *
+     * @param int $idsistema ID do sistema
+     * @param int $limite Limite de e-mails recentes
+     * @return array Retorna dados completos do dashboard
+     */
+    public static function obterDadosDashboard($idsistema, $limite = 10)
+    {
+        // Obtém estatísticas usando SQL complexo
+        $statsRaw = self::obterEstatisticas($idsistema);
+        
+        // Garante que todos os campos existam
+        $stats = [
+            'total' => (int)($statsRaw['total'] ?? 0),
+            'enviados' => (int)($statsRaw['enviados'] ?? 0),
+            'erros' => (int)($statsRaw['erros'] ?? 0),
+            'pendentes' => (int)($statsRaw['pendentes'] ?? 0)
+        ];
+        
+        // Obtém últimos e-mails usando Query Builder
+        if (!empty($idsistema)) {
+            $ultimosEmails = Emails_enviados::getBySystem($idsistema, $limite, 0);
+        } else {
+            $ultimosEmails = Emails_enviados::getRecentes($limite);
+        }
+
+        return [
+            'estatisticas' => $stats,
+            'ultimos_emails' => $ultimosEmails ?? []
+        ];
+    }
 }

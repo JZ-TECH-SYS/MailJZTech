@@ -24,35 +24,27 @@ class DashboardController extends ctrl
     /**
      * Obtém estatísticas do dashboard (API)
      * GET /api/dashboard/stats
+     * ✅ ARQUITETURA CORRETA: Controller → Handler → Model
+     * ✅ Dashboard GERAL - mostra dados de TODOS os sistemas
      */
     public function obterEstatisticas()
     {
         try {
-            // Obtém o ID do sistema da query string
-            $idsistema = $_GET['idsistema'] ?? null;
-
-            if (!$idsistema) {
-                return self::response(['mensagem' => 'ID do sistema é obrigatório'], 400);
-            }
-
-            // Obtém estatísticas de e-mails
-            $stats = EmailsHandler::obterEstatisticas($idsistema);
-
-            // Obtém logs recentes
-            // ✅ Controller → Handler
-            $logsRecentes = LogsHandler::obterRecentes(10);
+            // Filtro opcional por sistema via query string (?idsistema=123)
+            $idsistemaQS = filter_input(INPUT_GET, 'idsistema', FILTER_VALIDATE_INT);
+            $idsistema = $idsistemaQS ?: null; // null = geral (todos)
+            
+            // ✅ Controller → Handler → Model
+            $dados = EmailsHandler::obterDadosDashboard($idsistema, 10);
 
             // Retorna os dados
             return self::response([
-                'sucesso' => true,
-                'estatisticas' => $stats,
-                'logs_recentes' => $logsRecentes
+                'estatisticas' => $dados['estatisticas'],
+                'ultimos_emails' => $dados['ultimos_emails']
             ], 200);
         } catch (\Exception $e) {
-            return self::response([
-                'sucesso' => false,
-                'mensagem' => 'Erro ao obter estatísticas: ' . $e->getMessage()
-            ], 500);
+            self::log('Erro ao obter estatísticas do dashboard: ' . $e->getMessage());
+            return self::rejectResponse($e);
         }
     }
 }

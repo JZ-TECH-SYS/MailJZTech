@@ -82,16 +82,19 @@
 <!-- Modal de Detalhes -->
 <div class="modal fade" id="detalhesLogModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Detalhes do Log</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-gradient border-bottom-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-file-alt"></i> Detalhes do Log
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="detalhesLogContent">
-                <div class="text-center">
-                    <div class="spinner-border" role="status">
+            <div class="modal-body p-4" id="detalhesLogContent" style="max-height: 70vh; overflow-y: auto;">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Carregando...</span>
                     </div>
+                    <p class="mt-3 text-muted">Carregando detalhes...</p>
                 </div>
             </div>
         </div>
@@ -255,14 +258,14 @@
 
     function getTipoBadge(tipo) {
         const tipos = {
-            'envio': {badgeClass: 'badge-info', icon: 'envelope'},
-            'criacao': {badgeClass: 'badge-success', icon: 'plus-circle'},
-            'atualizacao': {badgeClass: 'badge-primary', icon: 'edit'},
-            'erro': {badgeClass: 'badge-danger', icon: 'exclamation-circle'},
-            'autenticacao': {badgeClass: 'badge-warning', icon: 'lock'},
-            'validacao': {badgeClass: 'badge-info', icon: 'check-circle'}
+            'envio': {badgeClass: 'bg-info', icon: 'envelope'},
+            'criacao': {badgeClass: 'bg-success', icon: 'plus-circle'},
+            'atualizacao': {badgeClass: 'bg-primary', icon: 'edit'},
+            'erro': {badgeClass: 'bg-danger', icon: 'exclamation-circle'},
+            'autenticacao': {badgeClass: 'bg-warning text-dark', icon: 'lock'},
+            'validacao': {badgeClass: 'bg-info', icon: 'check-circle'}
         };
-        return tipos[tipo] || {badgeClass: 'badge-secondary', icon: 'info-circle'};
+        return tipos[tipo] || {badgeClass: 'bg-secondary', icon: 'info-circle'};
     }
 
     function formatarTipo(tipo) {
@@ -314,51 +317,144 @@
             
             if (!data.error && data.result) {
                 const log = data.result;
-                const {badgeClass, icon} = getTipoBadge(log.tipo);
+                const {badgeClass, icon} = getTipoBadge(log.tipo_log || log.tipo);
+                
+                let dadosAdicionais = '';
+                if (log.dados_adicionais) {
+                    try {
+                        const parsed = typeof log.dados_adicionais === 'string' 
+                            ? JSON.parse(log.dados_adicionais)
+                            : log.dados_adicionais;
+                        const jsonStr = JSON.stringify(parsed, null, 2);
+                        
+                        // Syntax highlighting simples
+                        let highlighted = escapeHtml(jsonStr)
+                            .replace(/&quot;([^&]*?)&quot;:/g, '<span class="text-danger">&quot;$1&quot;</span>:')
+                            .replace(/: &quot;([^&]*)&quot;/g, ': <span class="text-success">&quot;$1&quot;</span>')
+                            .replace(/: (\d+)/g, ': <span class="text-info">$1</span>')
+                            .replace(/: (true|false)/g, ': <span class="text-warning">$1</span>');
+                        
+                        dadosAdicionais = `
+                            <div class="card border-0 border-top border-warning mb-0">
+                                <div class="card-header bg-white border-0 pt-3">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-code text-warning"></i> Dados Adicionais
+                                    </h6>
+                                </div>
+                                <div class="card-body pt-0">
+                                    <div style="background:#1e1e1e; border:1px solid #404040; border-radius:0.375rem; padding:1rem; max-height:300px; overflow-y:auto; font-family: 'Courier New', monospace;">
+                                        <pre style="margin:0; color:#d4d4d4; font-size:0.85rem; line-height:1.5;"><code>${highlighted}</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } catch (e) {
+                        // Se não conseguir fazer parse, exibe como texto
+                        if (log.dados_adicionais) {
+                            dadosAdicionais = `
+                                <div class="card border-0 border-top border-warning mb-0">
+                                    <div class="card-header bg-white border-0 pt-3">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-code text-warning"></i> Dados Adicionais
+                                        </h6>
+                                    </div>
+                                    <div class="card-body pt-0">
+                                        <div style="background:#1e1e1e; border:1px solid #404040; border-radius:0.375rem; padding:1rem; max-height:300px; overflow-y:auto; font-family: 'Courier New', monospace;">
+                                            <pre style="margin:0; color:#d4d4d4; font-size:0.85rem; line-height:1.5;"><code>${escapeHtml(String(log.dados_adicionais))}</code></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                }
                 
                 content.innerHTML = `
-                    <div class="mb-3">
-                        <strong>ID do Log:</strong><br>
-                        <code>${log.idlog}</code>
-                    </div>
-                    <div class="mb-3">
-                        <strong>Tipo:</strong><br>
-                        <span class="badge ${badgeClass}">
-                            <i class="fas fa-${icon}"></i> ${formatarTipo(log.tipo_log)}
-                        </span>
-                    </div>
-                    <div class="mb-3">
-                        <strong>Mensagem:</strong><br>
-                        ${escapeHtml(log.mensagem)}
-                    </div>
-                    <div class="mb-3">
-                        <strong>Data/Hora:</strong><br>
-                        ${formatarDataHora(log.data_log)}
-                    </div>
-                    ${log.idemail ? `
-                        <div class="mb-3">
-                            <strong>E-mail ID:</strong><br>
-                            <code>${log.idemail}</code>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-0 border-start border-danger border-4">
+                                <div class="card-body">
+                                    <p class="card-text text-muted small mb-2"><i class="fas fa-hashtag text-danger"></i> ID do Log</p>
+                                    <h6 class="text-dark mb-0"><code class="text-danger" style="font-size: 1.1rem;">#${log.idlog}</code></h6>
+                                </div>
+                            </div>
                         </div>
-                    ` : ''}
-                    ${log.dados_adicionais ? `
-                        <div class="mb-3">
-                            <strong>Dados Adicionais:</strong><br>
-                            <pre class="bg-light p-2 rounded"><code>${JSON.stringify(JSON.parse(log.dados_adicionais), null, 2)}</code></pre>
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-0 border-start border-info border-4">
+                                <div class="card-body">
+                                    <p class="card-text text-muted small mb-2"><i class="fas fa-tag text-info"></i> Tipo</p>
+                                    <span class="badge ${badgeClass} p-2">
+                                        <i class="fas fa-${icon}"></i> ${formatarTipo(log.tipo_log || log.tipo)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 border-start border-warning border-4 mb-3" style="background: rgba(255, 193, 7, 0.15);">
+                        <div class="card-body">
+                            <p class="card-text text-muted small mb-2"><i class="fas fa-calendar-clock text-warning"></i> Data/Hora</p>
+                            <h6 class="mb-0" style="font-size: 1.05rem; font-weight: 600; color: #ffc107;">${formatarDataHora(log.data_log)}</h6>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 border-start border-success border-4 mb-3" style="background: rgba(40, 167, 69, 0.15);">
+                        <div class="card-body">
+                            <p class="card-text text-muted small mb-2"><i class="fas fa-message text-success"></i> Mensagem</p>
+                            <p class="mb-0" style="font-size: 1rem; line-height: 1.6; font-weight: 500; color: #28a745;">${escapeHtml(log.mensagem)}</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        ${log.idemail ? `
+                            <div class="col-md-4 mb-3">
+                                <div class="card border-0 border-start border-danger border-4">
+                                    <div class="card-body">
+                                        <p class="card-text text-muted small mb-2"><i class="fas fa-envelope text-danger"></i> E-mail ID</p>
+                                        <h6 class="text-dark mb-0"><code class="text-danger">#${log.idemail}</code></h6>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${log.idsistema ? `
+                            <div class="col-md-4 mb-3">
+                                <div class="card border-0 border-start border-info border-4">
+                                    <div class="card-body">
+                                        <p class="card-text text-muted small mb-2"><i class="fas fa-cogs text-info"></i> Sistema ID</p>
+                                        <h6 class="text-dark mb-0"><code class="text-info">#${log.idsistema}</code></h6>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${log.idusuario ? `
+                            <div class="col-md-4 mb-3">
+                                <div class="card border-0 border-start border-secondary border-4">
+                                    <div class="card-body">
+                                        <p class="card-text text-muted small mb-2"><i class="fas fa-user text-secondary"></i> Usuário ID</p>
+                                        <h6 class="text-dark mb-0"><code class="text-secondary">#${log.idusuario}</code></h6>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    ${dadosAdicionais ? `
+                        <div class="mt-4">
+                            ${dadosAdicionais}
                         </div>
                     ` : ''}
                 `;
             } else {
                 content.innerHTML = `
                     <div class="alert alert-danger">
-                        Erro ao carregar detalhes do log
+                        <i class="fas fa-times-circle"></i> ${escapeHtml(data.result?.mensagem || 'Erro ao carregar detalhes do log')}
                     </div>
                 `;
             }
         } catch (error) {
             content.innerHTML = `
                 <div class="alert alert-danger">
-                    Erro: ${error.message}
+                    <i class="fas fa-times-circle"></i> Erro: ${escapeHtml(error.message)}
                 </div>
             `;
         }

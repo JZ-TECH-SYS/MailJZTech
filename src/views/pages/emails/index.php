@@ -213,9 +213,9 @@ async function carregarEmails(pagina = 1) {
             </tr>
         `;
 
+        // Construir URL com filtros
         let url = `<?php echo $base; ?>/listarEmails?limite=${limite}&pagina=${pagina}`;
         
-        // Adicionar filtros
         const idsistema = document.getElementById('filtroSistema').value;
         const status = document.getElementById('filtroStatus').value;
         const dataInicial = document.getElementById('dataInicial').value;
@@ -230,6 +230,7 @@ async function carregarEmails(pagina = 1) {
         const data = await response.json();
 
         if (!data.error && data.result) {
+            paginaAtual = pagina;
             renderizarEmails(data.result.emails || []);
             renderizarPaginacao(data.result.paginas_totais || 1, pagina);
             atualizarEstatisticas(data.result);
@@ -237,8 +238,11 @@ async function carregarEmails(pagina = 1) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="7" class="text-center py-4">
-                        <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
-                        <p class="text-muted">${data.result || 'Erro ao carregar e-mails'}</p>
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Nenhum e-mail encontrado com os filtros aplicados</p>
+                        <button class="btn btn-sm btn-secondary" onclick="limparFiltros()">
+                            <i class="fas fa-eraser"></i> Limpar Filtros
+                        </button>
                     </td>
                 </tr>
             `;
@@ -251,6 +255,9 @@ async function carregarEmails(pagina = 1) {
                 <td colspan="7" class="text-center py-4">
                     <i class="fas fa-times-circle text-danger fa-3x mb-3"></i>
                     <p class="text-danger">Erro ao carregar e-mails: ${error.message}</p>
+                    <button class="btn btn-sm btn-primary" onclick="carregarEmails(${paginaAtual})">
+                        <i class="fas fa-redo"></i> Tentar Novamente
+                    </button>
                 </td>
             </tr>
         `;
@@ -275,24 +282,31 @@ function renderizarEmails(emails) {
 
     tbody.innerHTML = emails.map(email => {
         const statusBadge = getStatusBadge(email.status);
-        const dataFormatada = formatarData(email.data_envio);
+        const dataFormatada = formatarData(email.data_envio || email.data_criacao);
         
         return `
             <tr>
                 <td>#${email.idemail}</td>
-                <td>${email.sistema_nome || 'N/A'}</td>
-                <td>${email.destinatario}</td>
-                <td>${truncate(email.assunto, 50)}</td>
+                <td>${email.sistema_nome || email.idsistema || 'N/A'}</td>
+                <td>${escapeHtml(email.destinatario)}</td>
+                <td>${escapeHtml(truncate(email.assunto, 50))}</td>
                 <td>${statusBadge}</td>
                 <td>${dataFormatada}</td>
                 <td>
-                    <button class="btn btn-sm btn-info" onclick="verDetalhes(${email.idemail})">
+                    <button class="btn btn-sm btn-info btn-ver-detalhe" data-idemail="${email.idemail}">
                         <i class="fas fa-eye"></i>
                     </button>
                 </td>
             </tr>
         `;
     }).join('');
+    
+    // Adicionar event listeners nos botões de detalhe
+    tbody.querySelectorAll('.btn-ver-detalhe').forEach(btn => {
+        btn.addEventListener('click', () => {
+            verDetalhes(btn.getAttribute('data-idemail'));
+        });
+    });
 }
 
 // Renderizar paginação
@@ -345,7 +359,7 @@ function atualizarEstatisticas(dados) {
     document.getElementById('taxaSucesso').textContent = taxa + '%';
 }
 
-// Ver detalhes do e-mail
+// Ver detalhes do e-mail via AJAX/Modal
 async function verDetalhes(idemail) {
     const modal = new bootstrap.Modal(document.getElementById('modalDetalhesEmail'));
     const body = document.getElementById('detalhesEmailBody');
@@ -360,39 +374,73 @@ async function verDetalhes(idemail) {
     modal.show();
 
     try {
-        const response = await fetchComToken(`<?php echo $base; ?>/detalheEmail?idemail=${idemail}`);
+        const response = await fetchComToken(`<?php echo $base; ?>/detalheEmail/${idemail}`);
         const data = await response.json();
 
         if (!data.error && data.result) {
             const email = data.result;
+            
+            // Processar corpo do e-mail
+            let corpoEmail = 'Sem conteúdo';
+            if (email.corpo_html && email.corpo_html.trim() !== '') {
+                corpoEmail = email.corpo_html;
+            } else if (email.corpo_texto && email.corpo_texto.trim() !== '') {
+                corpoEmail = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit;">${escapeHtml(email.corpo_texto)}</pre>`;
+            }
+            
             body.innerHTML = `
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <strong>ID:</strong><br>${email.idemail}
+                        <strong><i class="fas fa-hashtag"></i> ID:</strong><br>
+                        <span class="text-muted">#${email.idemail}</span>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <strong>Status:</strong><br>${getStatusBadge(email.status)}
+                        <strong><i class="fas fa-info-circle"></i> Status:</strong><br>
+                        ${getStatusBadge(email.status)}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong><i class="fas fa-cogs"></i> Sistema:</strong><br>
+                        <span class="text-muted">${email.idsistema || 'N/A'}</span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong><i class="fas fa-calendar-plus"></i> Data de Criação:</strong><br>
+                        <span class="text-muted">${formatarData(email.data_criacao)}</span>
                     </div>
                     <div class="col-md-12 mb-3">
-                        <strong>Destinatário:</strong><br>${email.destinatario}
+                        <strong><i class="fas fa-user"></i> Destinatário:</strong><br>
+                        <span class="text-muted">${escapeHtml(email.destinatario)}</span>
+                    </div>
+                    ${email.cc ? `
+                        <div class="col-md-12 mb-3">
+                            <strong><i class="fas fa-users"></i> CC:</strong><br>
+                            <span class="text-muted">${escapeHtml(email.cc)}</span>
+                        </div>
+                    ` : ''}
+                    ${email.bcc ? `
+                        <div class="col-md-12 mb-3">
+                            <strong><i class="fas fa-user-secret"></i> BCC:</strong><br>
+                            <span class="text-muted">${escapeHtml(email.bcc)}</span>
+                        </div>
+                    ` : ''}
+                    <div class="col-md-12 mb-3">
+                        <strong><i class="fas fa-heading"></i> Assunto:</strong><br>
+                        <span class="text-muted">${escapeHtml(email.assunto)}</span>
                     </div>
                     <div class="col-md-12 mb-3">
-                        <strong>Assunto:</strong><br>${email.assunto}
+                        <strong><i class="fas fa-paper-plane"></i> Data de Envio:</strong><br>
+                        <span class="text-muted">${formatarData(email.data_envio)}</span>
                     </div>
                     <div class="col-md-12 mb-3">
-                        <strong>Data de Envio:</strong><br>${formatarData(email.data_envio)}
-                    </div>
-                    <div class="col-md-12 mb-3">
-                        <strong>Corpo do E-mail:</strong>
-                        <div class="border rounded p-3 mt-2" style="max-height: 300px; overflow-y: auto;">
-                            ${email.corpo_html || email.corpo_texto || 'N/A'}
+                        <strong><i class="fas fa-envelope-open-text"></i> Corpo do E-mail:</strong>
+                        <div class="border rounded p-3 mt-2 bg-white" style="max-height: 400px; overflow-y: auto;">
+                            ${corpoEmail}
                         </div>
                     </div>
                     ${email.mensagem_erro ? `
                         <div class="col-md-12">
-                            <div class="alert alert-danger">
-                                <strong><i class="fas fa-exclamation-triangle"></i> Erro:</strong><br>
-                                ${email.mensagem_erro}
+                            <div class="alert alert-danger mb-0">
+                                <strong><i class="fas fa-exclamation-triangle"></i> Erro de Envio:</strong><br>
+                                <code>${escapeHtml(email.mensagem_erro)}</code>
                             </div>
                         </div>
                     ` : ''}
@@ -401,14 +449,14 @@ async function verDetalhes(idemail) {
         } else {
             body.innerHTML = `
                 <div class="alert alert-danger">
-                    <i class="fas fa-times-circle"></i> ${data.result || 'Erro ao carregar detalhes'}
+                    <i class="fas fa-times-circle"></i> ${escapeHtml(data.result?.mensagem || 'Erro ao carregar detalhes')}
                 </div>
             `;
         }
     } catch (error) {
         body.innerHTML = `
             <div class="alert alert-danger">
-                <i class="fas fa-times-circle"></i> Erro: ${error.message}
+                <i class="fas fa-times-circle"></i> Erro: ${escapeHtml(error.message)}
             </div>
         `;
     }
@@ -431,11 +479,11 @@ function limparFiltros() {
 // Helpers
 function getStatusBadge(status) {
     const badges = {
-        'enviado': '<span class="badge badge-success">Enviado</span>',
-        'erro': '<span class="badge badge-danger">Erro</span>',
-        'pendente': '<span class="badge badge-warning">Pendente</span>'
+        'enviado': '<span class="badge bg-success">Enviado</span>',
+        'erro': '<span class="badge bg-danger">Erro</span>',
+        'pendente': '<span class="badge bg-warning text-dark">Pendente</span>'
     };
-    return badges[status] || '<span class="badge badge-secondary">Desconhecido</span>';
+    return badges[status] || '<span class="badge bg-secondary">Desconhecido</span>';
 }
 
 function formatarData(dataString) {
@@ -447,6 +495,18 @@ function formatarData(dataString) {
 function truncate(str, length) {
     if (!str) return '';
     return str.length > length ? str.substring(0, length) + '...' : str;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
 // Inicializar ao carregar

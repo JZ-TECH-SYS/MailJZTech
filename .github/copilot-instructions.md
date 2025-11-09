@@ -2,6 +2,9 @@
 
 Objetivo: manter consistência no MVC do projeto, padronizar como escrever controllers, handlers, models e services, e quando usar Query Builder vs SQL complexo (Database::switchParams).
 
+## REGRA CRÍTICA: DOCUMENTAÇÃO
+**NÃO CRIAR DOCUMENTAÇÃO** automaticamente. Apenas criar arquivos .md se o usuário EXPLICITAMENTE pedir documentação. Foco em código funcional, não em docs.
+
 ## Arquitetura e Pastas
 - MVC simples:
   - Controllers: `src/controllers/*` (instanciados pelo router; métodos de ação públicos)

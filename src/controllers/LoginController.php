@@ -192,7 +192,7 @@ class LoginController extends ctrl
             unset($_SESSION['token']);
             session_destroy();
 
-            ctrl::response('Logout realizado com sucesso', 200);
+            ctrl::redirect('/login');
         } catch (Exception $e) {
             ctrl::rejectResponse($e);
         }

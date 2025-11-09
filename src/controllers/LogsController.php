@@ -22,7 +22,7 @@ class LogsController extends ctrl
 
     /**
      * Lista logs de e-mail com filtros
-     * GET /api/logs/listar?idemail=1&tipo_log=envio&limite=50&offset=0
+     * GET /api/logs/listar?tipo=envio&data_inicial=2025-01-01&data_final=2025-01-31&busca=teste&pagina=1&limite=20
      *
      * @return void
      */
@@ -30,32 +30,82 @@ class LogsController extends ctrl
     {
         try {
             // Obter parâmetros da query string
-            $filtros = [
-                'idemail' => $_GET['idemail'] ?? null,
-                'idsistema' => $_GET['idsistema'] ?? null,
-                'idusuario' => $_GET['idusuario'] ?? null,
-                'tipo_log' => $_GET['tipo_log'] ?? null,
-                'data_inicio' => $_GET['data_inicio'] ?? null,
-                'data_fim' => $_GET['data_fim'] ?? null,
-            ];
+            $tipo = $_GET['tipo'] ?? null;
+            $dataInicial = $_GET['data_inicial'] ?? null;
+            $dataFinal = $_GET['data_final'] ?? null;
+            $busca = $_GET['busca'] ?? null;
+            $pagina = (int)($_GET['pagina'] ?? 1);
+            $limite = (int)($_GET['limite'] ?? 20);
+            
+            $offset = ($pagina - 1) * $limite;
 
-            $limite = (int)($_GET['limite'] ?? 50);
-            $offset = (int)($_GET['offset'] ?? 0);
+            // Construir array de filtros
+            $filtros = [];
+            if (!empty($tipo)) {
+                $filtros['tipo_log'] = $tipo;
+            }
+            if (!empty($dataInicial)) {
+                $filtros['data_inicio'] = $dataInicial;
+            }
+            if (!empty($dataFinal)) {
+                $filtros['data_fim'] = $dataFinal;
+            }
+            if (!empty($busca)) {
+                $filtros['mensagem'] = $busca;
+            }
 
             // Chamar handler (Controller → Handler)
             $logs = LogsHandler::listar($filtros, $limite, $offset);
             $total = LogsHandler::contar($filtros);
+            
+            // Calcular total de páginas
+            $totalPaginas = $total > 0 ? ceil($total / $limite) : 1;
 
             // Retornar resultado
             ctrl::response([
                 'logs' => $logs,
                 'total' => $total,
-                'limite' => $limite,
-                'offset' => $offset
+                'pagina_atual' => $pagina,
+                'paginas_totais' => $totalPaginas,
+                'limite' => $limite
             ], 200);
 
         } catch (\Exception $e) {
             ctrl::log("Erro em listar logs: " . $e->getMessage());
+            ctrl::rejectResponse($e);
+        }
+    }
+
+    /**
+     * Obtém detalhes de um log específico via rota /api/logs/detalhe/{idlog}
+     * GET /api/logs/detalhe/{idlog}
+     *
+     * @param array $args Argumentos da rota (ex: ['idlog' => 123])
+     * @return void
+     */
+    public function detalhe($args = [])
+    {
+        try {
+            // Obter ID do log da rota ou query string
+            $idlog = $args['idlog'] ?? $args['id'] ?? $_GET['idlog'] ?? null;
+
+            if (!$idlog) {
+                throw new \Exception('ID do log não informado');
+            }
+
+            // Chamar handler (Controller → Handler)
+            $log = LogsHandler::obter($idlog);
+
+            if (!$log) {
+                ctrl::response(['mensagem' => 'Log não encontrado'], 404);
+                return;
+            }
+
+            // Retornar resultado
+            ctrl::response($log, 200);
+
+        } catch (\Exception $e) {
+            ctrl::log("Erro em detalhe log: " . $e->getMessage());
             ctrl::rejectResponse($e);
         }
     }

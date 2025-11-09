@@ -1,319 +1,152 @@
+<!-- Carregar CSS das Tabs -->
+<link rel="stylesheet" href="<?php echo $base; ?>/assets/css/tabs.css">
+
+<style>
+    /* Background e Estilos Globais */
+    body {
+        background: linear-gradient(135deg, #0f0c29 0%, #1a0033 100%) !important;
+        min-height: 100vh;
+        color: #e0e0e0;
+    }
+
+    /* Cards Glassmorphism */
+    .card {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Texto secundário */
+    .text-light-50 {
+        color: rgba(224, 224, 224, 0.6) !important;
+    }
+
+    /* Code inline */
+    code {
+        background: rgba(0, 0, 0, 0.3);
+        color: #87ceeb;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.9em;
+    }
+
+    /* Tables Dark */
+    .table-dark {
+        background: rgba(0, 0, 0, 0.3);
+    }
+
+    .table-dark thead {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .table-dark tbody tr:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Navigation Sidebar */
+    .sidebar-nav {
+        position: sticky;
+        top: 20px;
+    }
+
+    .sidebar-nav .list-group-item {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: rgba(224, 224, 224, 0.8);
+        transition: all 0.3s ease;
+    }
+
+    .sidebar-nav .list-group-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #87ceeb;
+        transform: translateX(5px);
+    }
+
+    .sidebar-nav .list-group-item i {
+        width: 25px;
+    }
+
+    /* Smooth Scroll */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* Section Spacing */
+    section {
+        scroll-margin-top: 30px;
+    }
+</style>
+
 <?php $render('header'); ?>
 
-<div class="row">
-    <div class="col-lg-3">
-        <!-- Índice -->
-        <div class="card sticky-top" style="top: 20px;">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-list"></i> Índice
-                </h5>
-            </div>
-            <div class="list-group list-group-flush">
-                <a href="#visao-geral" class="list-group-item list-group-item-action">Visão Geral</a>
-                <a href="#autenticacao" class="list-group-item list-group-item-action">Autenticação</a>
-                <a href="#enviar-email" class="list-group-item list-group-item-action">Enviar E-mail</a>
-                <a href="#listar-emails" class="list-group-item list-group-item-action">Listar E-mails</a>
-                <a href="#exemplos" class="list-group-item list-group-item-action">Exemplos</a>
-                <a href="#codigos-erro" class="list-group-item list-group-item-action">Códigos de Erro</a>
-            </div>
-        </div>
-    </div>
+<div class="container-fluid py-5">
+    <h1 class="mb-5 text-center">
+        <i class="fas fa-book text-info"></i>
+        <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 2.5rem; font-weight: 700;">
+            Documentação da API MailJZTech
+        </span>
+    </h1>
 
-    <div class="col-lg-9">
-        <!-- Visão Geral -->
-        <div class="card mb-4" id="visao-geral">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-book"></i> Visão Geral
-                </h5>
-            </div>
-            <div class="card-body">
-                <p>Bem-vindo à documentação da API MailJZTech! Esta API permite que você envie e-mails através de um serviço centralizado e robusto.</p>
-                
-                <h6 class="mt-4">Características Principais:</h6>
-                <ul>
-                    <li><strong>E-mail padrão:</strong> Todos os e-mails saem de <code>contato@jztech.com.br</code></li>
-                    <li><strong>Remetente personalizável:</strong> O nome do remetente é configurado no seu sistema</li>
-                    <li><strong>Suporte a CC e BCC:</strong> Envie para múltiplos destinatários</li>
-                    <li><strong>Anexos:</strong> Suporte a múltiplos anexos</li>
-                    <li><strong>Histórico:</strong> Todos os e-mails são registrados</li>
-                </ul>
-
-                <div class="alert alert-info mt-4">
-                    <strong><i class="fas fa-info-circle"></i> Informação:</strong> Sua chave de API é: 
-                    <code class="bg-light p-1 rounded"><?php echo htmlspecialchars($chave_api ?? 'sua_chave_aqui'); ?></code>
-                    <button class="btn btn-sm btn-outline-primary ms-2" onclick="copiarChave('<?php echo htmlspecialchars($chave_api ?? ''); ?>')">
-                        <i class="fas fa-copy"></i> Copiar
-                    </button>
+    <div class="row">
+        <!-- SIDEBAR DE NAVEGAÇÃO -->
+        <div class="col-lg-3">
+            <nav class="sidebar-nav">
+                <div class="card" style="border-radius: 1rem;">
+                    <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 1rem 1rem 0 0;">
+                        <h5 class="mb-0"><i class="fas fa-compass"></i> Navegação</h5>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="#visao-geral" class="list-group-item list-group-item-action">
+                            <i class="fas fa-info-circle text-primary"></i> Visão Geral
+                        </a>
+                        <a href="#autenticacao" class="list-group-item list-group-item-action">
+                            <i class="fas fa-lock text-danger"></i> Autenticação
+                        </a>
+                        <a href="#enviar-email" class="list-group-item list-group-item-action">
+                            <i class="fas fa-paper-plane text-info"></i> Enviar E-mail
+                        </a>
+                        <a href="#listar-emails" class="list-group-item list-group-item-action">
+                            <i class="fas fa-list text-success"></i> Listar E-mails
+                        </a>
+                        <a href="#codigos-erro" class="list-group-item list-group-item-action">
+                            <i class="fas fa-exclamation-triangle text-warning"></i> Códigos de Erro
+                        </a>
+                    </div>
                 </div>
-            </div>
+            </nav>
         </div>
 
-        <!-- Autenticação -->
-        <div class="card mb-4" id="autenticacao">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-lock"></i> Autenticação
-                </h5>
-            </div>
-            <div class="card-body">
-                <p>Todas as requisições à API devem incluir sua chave de API no header <code>Authorization</code>:</p>
-                
-                <div class="bg-dark text-light p-3 rounded mb-3">
-                    <code>Authorization: Bearer sua_chave_api_aqui</code>
-                </div>
+        <!-- CONTEÚDO PRINCIPAL -->
+        <div class="col-lg-9">
+            <!-- Visão Geral -->
+            <section id="visao-geral">
+                <?php require __DIR__ . '/visao_geral.php'; ?>
+            </section>
 
-                <h6>Exemplo com cURL:</h6>
-                <div class="bg-light p-3 rounded">
-                    <pre><code>curl -X POST http://api.mailjztech.com/sendEmail \
-  -H "Authorization: Bearer sua_chave_api_aqui" \
-  -H "Content-Type: application/json" \
-  -d '{...}'</code></pre>
-                </div>
-            </div>
-        </div>
+            <!-- Autenticação -->
+            <section id="autenticacao">
+                <?php require __DIR__ . '/autenticacao.php'; ?>
+            </section>
 
-        <!-- Enviar E-mail -->
-        <div class="card mb-4" id="enviar-email">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-envelope"></i> Enviar E-mail
-                </h5>
-            </div>
-            <div class="card-body">
-                <p><strong>POST</strong> <code>/sendEmail</code></p>
+            <!-- Enviar E-mail (COM TABS INTERATIVAS) -->
+            <section id="enviar-email">
+                <?php require __DIR__ . '/enviar_email.php'; ?>
+            </section>
 
-                <h6 class="mt-3">Parâmetros:</h6>
-                <table class="table table-sm table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Campo</th>
-                            <th>Tipo</th>
-                            <th>Obrigatório</th>
-                            <th>Descrição</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><code>destinatario</code></td>
-                            <td>string</td>
-                            <td><span class="badge bg-danger">Sim</span></td>
-                            <td>E-mail do destinatário</td>
-                        </tr>
-                        <tr>
-                            <td><code>assunto</code></td>
-                            <td>string</td>
-                            <td><span class="badge bg-danger">Sim</span></td>
-                            <td>Assunto do e-mail</td>
-                        </tr>
-                        <tr>
-                            <td><code>corpo_html</code></td>
-                            <td>string</td>
-                            <td><span class="badge bg-danger">Sim</span></td>
-                            <td>Corpo em HTML</td>
-                        </tr>
-                        <tr>
-                            <td><code>corpo_texto</code></td>
-                            <td>string</td>
-                            <td><span class="badge bg-success">Não</span></td>
-                            <td>Corpo em texto puro (fallback)</td>
-                        </tr>
-                        <tr>
-                            <td><code>cc</code></td>
-                            <td>array</td>
-                            <td><span class="badge bg-success">Não</span></td>
-                            <td>E-mails em cópia</td>
-                        </tr>
-                        <tr>
-                            <td><code>bcc</code></td>
-                            <td>array</td>
-                            <td><span class="badge bg-success">Não</span></td>
-                            <td>E-mails em cópia oculta</td>
-                        </tr>
-                        <tr>
-                            <td><code>anexos</code></td>
-                            <td>array</td>
-                            <td><span class="badge bg-success">Não</span></td>
-                            <td>Array com objetos {nome, caminho}</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <!-- Listar E-mails -->
+            <section id="listar-emails">
+                <?php require __DIR__ . '/listar_emails.php'; ?>
+            </section>
 
-                <h6 class="mt-3">Resposta de Sucesso (200):</h6>
-                <div class="bg-light p-3 rounded">
-                    <pre><code>{
-  "result": {
-    "mensagem": "E-mail enviado com sucesso",
-    "idemail": 1,
-    "status": "enviado"
-  },
-  "error": false
-}</code></pre>
-                </div>
-            </div>
-        </div>
-
-        <!-- Listar E-mails -->
-        <div class="card mb-4" id="listar-emails">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-list"></i> Listar E-mails
-                </h5>
-            </div>
-            <div class="card-body">
-                <p><strong>GET</strong> <code>/listarEmails?limite=50&pagina=1</code></p>
-
-                <h6 class="mt-3">Parâmetros:</h6>
-                <table class="table table-sm table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Parâmetro</th>
-                            <th>Tipo</th>
-                            <th>Padrão</th>
-                            <th>Descrição</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><code>limite</code></td>
-                            <td>integer</td>
-                            <td>50</td>
-                            <td>Quantidade de registros por página</td>
-                        </tr>
-                        <tr>
-                            <td><code>pagina</code></td>
-                            <td>integer</td>
-                            <td>1</td>
-                            <td>Número da página</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Exemplos -->
-        <div class="card mb-4" id="exemplos">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-code"></i> Exemplos
-                </h5>
-            </div>
-            <div class="card-body">
-                <h6>1. Enviar E-mail Simples (cURL)</h6>
-                <div class="bg-light p-3 rounded mb-3">
-                    <pre><code>curl -X POST http://api.mailjztech.com/sendEmail \
-  -H "Authorization: Bearer <?php echo htmlspecialchars($chave_api ?? 'sua_chave'); ?>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "destinatario": "usuario@example.com",
-    "assunto": "Bem-vindo!",
-    "corpo_html": "&lt;h1&gt;Olá!&lt;/h1&gt;&lt;p&gt;Bem-vindo ao sistema.&lt;/p&gt;"
-  }'</code></pre>
-                </div>
-
-                <h6>2. Enviar E-mail com CC e BCC (JavaScript)</h6>
-                <div class="bg-light p-3 rounded mb-3">
-                    <pre><code>fetch('http://api.mailjztech.com/sendEmail', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer <?php echo htmlspecialchars($chave_api ?? 'sua_chave'); ?>',
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    destinatario: 'usuario@example.com',
-    cc: ['gerente@example.com'],
-    bcc: ['arquivo@example.com'],
-    assunto: 'Relatório',
-    corpo_html: '&lt;h1&gt;Relatório Mensal&lt;/h1&gt;'
-  })
-})
-.then(response => response.json())
-.then(data => console.log(data));</code></pre>
-                </div>
-
-                <h6>3. Enviar E-mail com Anexo (Python)</h6>
-                <div class="bg-light p-3 rounded">
-                    <pre><code>import requests
-
-headers = {
-    'Authorization': 'Bearer <?php echo htmlspecialchars($chave_api ?? 'sua_chave'); ?>',
-    'Content-Type': 'application/json'
-}
-
-data = {
-    'destinatario': 'usuario@example.com',
-    'assunto': 'Documento',
-    'corpo_html': '&lt;p&gt;Segue em anexo o documento.&lt;/p&gt;',
-    'anexos': [
-        {
-            'nome': 'documento.pdf',
-            'caminho': '/path/to/documento.pdf'
-        }
-    ]
-}
-
-response = requests.post('http://api.mailjztech.com/sendEmail', 
-                        headers=headers, 
-                        json=data)
-print(response.json())</code></pre>
-                </div>
-            </div>
-        </div>
-
-        <!-- Códigos de Erro -->
-        <div class="card mb-4" id="codigos-erro">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-exclamation-triangle"></i> Códigos de Erro
-                </h5>
-            </div>
-            <div class="card-body">
-                <table class="table table-sm table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Código</th>
-                            <th>Descrição</th>
-                            <th>Solução</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><span class="badge bg-success">200</span></td>
-                            <td>Sucesso</td>
-                            <td>E-mail enviado com sucesso</td>
-                        </tr>
-                        <tr>
-                            <td><span class="badge bg-warning">400</span></td>
-                            <td>Requisição Inválida</td>
-                            <td>Verifique os parâmetros enviados</td>
-                        </tr>
-                        <tr>
-                            <td><span class="badge bg-danger">401</span></td>
-                            <td>Não Autorizado</td>
-                            <td>Verifique sua chave de API</td>
-                        </tr>
-                        <tr>
-                            <td><span class="badge bg-danger">404</span></td>
-                            <td>Não Encontrado</td>
-                            <td>Endpoint ou recurso não existe</td>
-                        </tr>
-                        <tr>
-                            <td><span class="badge bg-danger">500</span></td>
-                            <td>Erro Interno</td>
-                            <td>Tente novamente mais tarde</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <!-- Códigos de Erro -->
+            <section id="codigos-erro">
+                <?php require __DIR__ . '/codigos_erro.php'; ?>
+            </section>
         </div>
     </div>
 </div>
 
-<script>
-    function copiarChave(chave) {
-        copyToClipboard(chave, event.target);
-    }
-</script>
+<!-- Carregar JavaScript das Tabs -->
+<script src="<?php echo $base; ?>/assets/js/tabs.js"></script>
 
 <?php $render('footer'); ?>
