@@ -51,7 +51,7 @@ async function carregarDadosDashboard() {
 
         if (data.error) {
             console.error('❌ Erro ao carregar dados:', data.result);
-            mostrarErro(data.result?.mensagem || 'Erro ao carregar dados do dashboard');
+            toastErro(data.result?.mensagem || 'Erro ao carregar dados do dashboard');
             return;
         }
 
@@ -64,7 +64,7 @@ async function carregarDadosDashboard() {
 
     } catch (error) {
         console.error('❌ Erro ao carregar dashboard:', error);
-        mostrarErro('Erro ao conectar com o servidor');
+        toastErro('Erro ao conectar com o servidor');
     }
 }
 
@@ -288,11 +288,11 @@ function escapeHtml(text) {
 }
 
 /**
- * Mostra mensagem de erro
+ * Mostra mensagem de erro (ATUALIZADO para Toast)
  */
 function mostrarErro(mensagem) {
-    // Pode ser implementado um toast ou alert mais sofisticado
     console.error('❌', mensagem);
+    toastErro(mensagem);
 }
 
 // Modal detalhes (reuso do existente em view dashboard)
@@ -307,7 +307,8 @@ async function abrirModalDetalhes(idemail) {
         const resp = await fetchComToken(`/detalheEmail/${idemail}`);
         const data = await resp.json();
         if (data.error) {
-            content.innerHTML = `<div class='alert alert-danger'>${escapeHtml(data.result?.mensagem || 'Erro ao carregar detalhes')}</div>`;
+            content.innerHTML = `<div class='alert alert-danger'><i class="fas fa-exclamation-circle"></i> ${escapeHtml(data.result?.mensagem || 'Erro ao carregar detalhes')}</div>`;
+            toastErro('Erro ao carregar detalhes do e-mail');
             return;
         }
         const e = data.result;
@@ -384,7 +385,9 @@ async function abrirModalDetalhes(idemail) {
             ` : ''}
         `;
     } catch (err) {
-        content.innerHTML = `<div class='alert alert-danger'>${escapeHtml(err.message)}</div>`;
+        console.error('Erro ao carregar detalhes:', err);
+        content.innerHTML = `<div class='alert alert-danger'><i class="fas fa-exclamation-circle"></i> ${escapeHtml(err.message)}</div>`;
+        toastErro('Erro ao carregar detalhes: ' + err.message);
     }
 }
 

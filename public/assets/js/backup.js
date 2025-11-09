@@ -72,6 +72,7 @@ async function carregarEstatisticas() {
         }
     } catch (error) {
         console.error('Erro ao carregar estatísticas:', error);
+        toastErro('Erro ao carregar estatísticas');
     }
 }
 
@@ -144,7 +145,7 @@ async function carregarConfiguracoes() {
         }
     } catch (error) {
         console.error('Erro ao carregar configurações:', error);
-        mostrarErro('Erro ao carregar configurações: ' + error.message);
+        toastErro('Erro ao carregar configurações: ' + error.message);
     }
 }
 
@@ -177,7 +178,7 @@ async function abrirModalEditar(id) {
         }
     } catch (error) {
         console.error('Erro ao carregar configuração:', error);
-        mostrarErro('Erro ao carregar configuração: ' + error.message);
+        toastErro('Erro ao carregar configuração: ' + error.message);
     }
 }
 
@@ -240,7 +241,8 @@ async function salvarConfiguracao() {
 }
 
 async function excluirConfiguracao(id, nome) {
-  if (!await confirmarAcao(`Tem certeza que deseja excluir a configuração do banco \"${nome}\"?`, `Todos os logs associados também serão removidos.`)) {       return;
+    if (!await confirmarExclusao(nome, 'Todos os logs associados também serão removidos.')) {
+        return;
     }
 
     try {
@@ -259,7 +261,7 @@ async function excluirConfiguracao(id, nome) {
         }
     } catch (error) {
         console.error('Erro ao excluir configuração:', error);
-        mostrarErro('Erro ao excluir configuração: ' + error.message);
+        toastErro('Erro ao excluir configuração: ' + error.message);
     }
 }
 
@@ -267,7 +269,7 @@ async function excluirConfiguracao(id, nome) {
 // EXECUÇÃO DE BACKUPS
 // ========================================
 async function executarBackup(id) {
-    if (!await confirmarAcao('Deseja executar o backup agora?', 'Esta operação pode demorar alguns minutos.')) {
+    if (!await confirmarAcao('Deseja executar o backup agora?', 'Execução de Backup', 'Sim, executar!', 'Cancelar')) {
         return;
     }
 
@@ -287,19 +289,19 @@ async function executarBackup(id) {
             carregarEstatisticas();
         } else {
             fecharLoad();
-            mostrarErro(data.result || 'Erro ao executar backup');
+            toastErro(data.result || 'Erro ao executar backup');
         }
     } catch (error) {
         console.error('Erro ao executar backup:', error);
         fecharLoad();
-            mostrarErro('Erro ao executar backup: ' + error.message);
+        toastErro('Erro ao executar backup: ' + error.message);
     }
 }
 
 async function executarBackupManual() {
     if (typeof idConfig === 'undefined') return;
     
-    if (!await confirmarAcao(`Deseja executar o backup de \"${nomeConfig}\"?`, 'Esta operação pode demorar alguns minutos.')) {
+    if (!await confirmarAcao(`Deseja executar o backup de "${nomeConfig}"?`, 'Execução Manual', 'Sim, executar!', 'Cancelar')) {
         return;
     }
 
@@ -318,12 +320,12 @@ async function executarBackupManual() {
             setTimeout(() => carregarLogs(idConfig), 2000);
         } else {
             fecharLoad();
-            mostrarErro(data.result || 'Erro ao executar backup');
+            toastErro(data.result || 'Erro ao executar backup');
         }
     } catch (error) {
         console.error('Erro ao executar backup:', error);
         fecharLoad();
-            mostrarErro('Erro ao executar backup: ' + error.message);
+        toastErro('Erro ao executar backup: ' + error.message);
     }
 }
 
@@ -383,13 +385,16 @@ async function carregarLogs(idConfig) {
         }
     } catch (error) {
         console.error('Erro ao carregar logs:', error);
-        mostrarErro('Erro ao carregar logs: ' + error.message);
+        toastErro('Erro ao carregar logs: ' + error.message);
     }
 }
 
 function verErro(mensagemErro) {
-    document.getElementById('erroDetalhes').textContent = mensagemErro || 'Sem detalhes do erro';
-    modalErro.show();
+    mostrarAlertaHTML(
+        'Erro no Backup',
+        `<pre style="text-align: left; background: #f8d7da; padding: 15px; border-radius: 5px; color: #721c24; max-height: 300px; overflow-y: auto;">${escapeHtml(mensagemErro || 'Sem detalhes do erro')}</pre>`,
+        'error'
+    );
 }
 
 // ========================================

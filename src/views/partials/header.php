@@ -11,6 +11,7 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="<?php echo $base; ?>/assets/css/custom.css">
+    <link rel="stylesheet" href="<?php echo $base; ?>/assets/css/sweetalert2.min.css">
     <!-- Font Awesome (opcional) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 

@@ -161,12 +161,14 @@
             
             if (!data.error && data.result) {
                 mostrarSucesso(data.result.mensagem || 'Sistema atualizado com sucesso!');
-                window.location.href = '<?php echo $base; ?>/sistemas';
+                setTimeout(() => {
+                    window.location.href = '<?php echo $base; ?>/sistemas';
+                }, 1500);
             } else {
-                mostrarErro(data.result || 'Erro ao atualizar sistema');
+                toastErro(data.result || 'Erro ao atualizar sistema');
             }
         } catch (error) {
-            mostrarErro('Erro ao conectar com o servidor: ' + error.message);
+            toastErro('Erro ao conectar com o servidor: ' + error.message);
             console.error(error);
         } finally {
             btnAtualizar.disabled = false;
