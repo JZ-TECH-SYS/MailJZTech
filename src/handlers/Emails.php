@@ -24,55 +24,124 @@ class Emails
      */
     public static function enviarRelatorioBackupsCron($dados)
     {
+        // Formatações e preparação de dados (pt-BR)
+        $ano = date('Y');
+
+        $timestamp = null;
+        if (!empty($dados['data_execucao'])) {
+            $timestamp = is_numeric($dados['data_execucao'])
+                ? (int)$dados['data_execucao']
+                : strtotime($dados['data_execucao']);
+        }
+        $dataExecucaoBr = $timestamp ? date('d/m/Y H:i:s', $timestamp) : date('d/m/Y H:i:s');
+
+        $total   = (int)($dados['total'] ?? 0);
+        $sucesso = (int)($dados['sucesso'] ?? 0);
+        $erros   = (int)($dados['erros'] ?? max(0, $total - $sucesso));
+
+        $taxaSucesso = $total > 0 ? round(($sucesso / $total) * 100) : 0;
+        $taxaErro    = 100 - $taxaSucesso;
+
+        $totalFmt   = number_format($total, 0, ',', '.');
+        $sucessoFmt = number_format($sucesso, 0, ',', '.');
+        $errosFmt   = number_format($erros, 0, ',', '.');
+
+        $mensagemEsc = htmlspecialchars((string)($dados['mensagem'] ?? 'Sem mensagem informada.'), ENT_QUOTES, 'UTF-8');
+
         $html = <<<HTML
         <html>
             <head>
             <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
             <style>
-                body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
-                .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden; }
-                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
-                .header h1 { margin: 0; font-size: 24px; }
-                .header p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; }
-                .content { padding: 30px; }
-                .content h2 { color: #333; margin-top: 0; }
-                .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 25px 0; }
-                .stat-box { background-color: #f9f9f9; border-left: 4px solid #667eea; padding: 15px; border-radius: 4px; }
-                .stat-box strong { display: block; color: #667eea; font-size: 16px; }
-                .stat-box span { display: block; font-size: 28px; font-weight: bold; color: #333; margin-top: 5px; }
-                .stat-box.success { border-left-color: #10b981; }
-                .stat-box.success strong { color: #10b981; }
-                .stat-box.error { border-left-color: #ef4444; }
-                .stat-box.error strong { color: #ef4444; }
-                .footer { background-color: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #eee; }
-                .footer a { color: #667eea; text-decoration: none; }
+                /* Estilos básicos (compatíveis com a maioria dos clientes de e-mail) */
+                body { margin:0; padding:0; background:#f3f4f6; font-family: Arial, Helvetica, sans-serif; color:#111827; }
+                .container { max-width: 640px; margin: 0 auto; background:#ffffff; }
+                .header {
+                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+                color:#ffffff; text-align:center; padding:28px 20px;
+                }
+                .header h1 { margin:0; font-size:22px; line-height:1.3; }
+                .header p { margin:6px 0 0 0; font-size:13px; opacity:.95; }
+
+                .content { padding:24px 22px; }
+                .title { margin:0 0 12px 0; font-size:18px; color:#111827; }
+                .message {
+                background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px;
+                padding:14px 16px; font-size:14px; color:#374151;
+                }
+
+                .stats-wrap { margin:18px 0; }
+                .stats-table { width:100%; border-collapse: collapse; }
+                .stats-table td {
+                width:33.33%; padding:14px; text-align:center; vertical-align:middle;
+                border:1px solid #f3f4f6; background:#fafafa;
+                }
+                .stats-title { display:block; font-size:12px; color:#6b7280; text-transform:uppercase; letter-spacing:.5px; }
+                .stats-value { display:block; margin-top:6px; font-size:24px; font-weight:bold; color:#111827; }
+                .ok { border-left:4px solid #10b981; }
+                .err { border-left:4px solid #ef4444; }
+                .tot { border-left:4px solid #4f46e5; }
+
+                .bar-wrap { margin:18px 0 4px 0; background:#eef2ff; border-radius:8px; overflow:hidden; height:12px; }
+                .bar-ok { height:12px; background:#10b981; width: {$taxaSucesso}%; display:inline-block; }
+                .bar-err { height:12px; background:#ef4444; width: {$taxaErro}%; display:inline-block; }
+
+                .bar-legend { font-size:12px; color:#6b7280; display:flex; justify-content:space-between; }
+                .badge { display:inline-block; padding:2px 8px; font-size:12px; border-radius:999px; color:#fff; }
+                .badge-ok { background:#10b981; }
+                .badge-err { background:#ef4444; }
+
+                .footer {
+                background:#f9fafb; border-top:1px solid #e5e7eb;
+                text-align:center; padding:16px; font-size:12px; color:#6b7280;
+                }
+                @media (max-width: 480px) {
+                .stats-table td { display:block; width:100%; }
+                }
             </style>
             </head>
             <body>
-            <div class="container">
+            <div class="container" role="article" aria-roledescription="email">
                 <div class="header">
                 <h1>📋 Relatório de Backups</h1>
-                <p>{$dados['data_execucao']}</p>
+                <p>Executado em {$dataExecucaoBr}</p>
                 </div>
+
                 <div class="content">
-                <p>{$dados['mensagem']}</p>
-                <div class="stats">
-                    <div class="stat-box">
-                    <strong>Total</strong>
-                    <span>{$dados['total']}</span>
+                <h2 class="title">Resumo</h2>
+                <div class="message">{$mensagemEsc}</div>
+
+                <div class="stats-wrap">
+                    <table class="stats-table" role="presentation">
+                    <tr>
+                        <td class="tot">
+                        <span class="stats-title">Total</span>
+                        <span class="stats-value">{$totalFmt}</span>
+                        </td>
+                        <td class="ok">
+                        <span class="stats-title">Sucesso</span>
+                        <span class="stats-value">{$sucessoFmt}</span>
+                        </td>
+                        <td class="err">
+                        <span class="stats-title">Erros</span>
+                        <span class="stats-value">{$errosFmt}</span>
+                        </td>
+                    </tr>
+                    </table>
+
+                    <div class="bar-wrap" aria-label="Taxa de sucesso vs erros">
+                    <span class="bar-ok"></span><span class="bar-err"></span>
                     </div>
-                    <div class="stat-box success">
-                    <strong>Sucesso</strong>
-                    <span>{$dados['sucesso']}</span>
-                    </div>
-                    <div class="stat-box error">
-                    <strong>Erros</strong>
-                    <span>{$dados['erros']}</span>
+                    <div class="bar-legend">
+                    <span><span class="badge badge-ok">{$taxaSucesso}% Sucesso</span></span>
+                    <span><span class="badge badge-err">{$taxaErro}% Erros</span></span>
                     </div>
                 </div>
                 </div>
+
                 <div class="footer">
-                <p>MailJZTech © 2025 | Relatório automático</p>
+                MailJZTech © {$ano} • Relatório automático
                 </div>
             </div>
             </body>
