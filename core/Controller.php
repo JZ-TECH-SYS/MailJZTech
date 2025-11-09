@@ -30,7 +30,7 @@ class Controller
     {
         // Suporta caminhos com subpastas: 'login/login', 'sistemas/criar_sistema', etc
         $filePath = '../src/views/' . $folder . '/' . $viewName . '.php';
-        
+
         // Se o arquivo não existe, tenta verificar se $viewName é uma pasta com index.php
         if (!file_exists($filePath)) {
             $alternativePath = '../src/views/' . $folder . '/' . $viewName . '/index.php';
@@ -38,10 +38,10 @@ class Controller
                 $filePath = $alternativePath;
             }
         }
-        
+
         if (file_exists($filePath)) {
             extract($viewData);
-            $render = fn ($vN, $vD = []) => $this->renderPartial($vN, $vD);
+            $render = fn($vN, $vD = []) => $this->renderPartial($vN, $vD);
             $base = $this->getBaseUrl();
             require $filePath;
         }
@@ -84,9 +84,9 @@ class Controller
             if (!array_key_exists($key, $campos)) {
                 throw new Exception('Campo obrigatório não encontrado: ' . $key);
             }
-            
-            if(is_array($campos[$key])) {
-                if(empty($campos[$key])){
+
+            if (is_array($campos[$key])) {
+                if (empty($campos[$key])) {
                     throw new Exception('Campo obrigatório vazio: ' . $key);
                 }
             } else {
@@ -156,7 +156,7 @@ class Controller
      */
     public static function validar_saldo()
     {
-        return isset($_SESSION['empresa']) && $_SESSION['empresa']['controlar_estoque'] == 'true' ? true : false ;
+        return isset($_SESSION['empresa']) && $_SESSION['empresa']['controlar_estoque'] == 'true' ? true : false;
     }
 
     public static function getUsuario()
@@ -173,29 +173,92 @@ class Controller
      * Log de sistema profissional
      * @param string|array $log Conteúdo do log (string ou array para serialização)
      */
-    public static function log($log) {
+    public static function log($log)
+    {
         // Converte array para JSON se necessário
         if (is_array($log)) {
             $log = json_encode($log, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         }
-        
+
         // Data no formato brasileiro (dd/mm/yyyy)
         $data = date('d/m/Y H:i:s');
-        
+
         // Caminho do arquivo de log
         $logFile = '../logs/app.log';
-        
+
         // Garante que o diretório existe
         $logDir = dirname($logFile);
         if (!is_dir($logDir)) {
             mkdir($logDir, 0755, true);
         }
-        
+
         // Escreve no arquivo com tratamento de erro
         $entry = "[$data] $log" . PHP_EOL;
         if (file_put_contents($logFile, $entry, FILE_APPEND | LOCK_EX) === false) {
             // Em caso de erro, poderia lançar uma exception ou logar em outro lugar
             error_log("Falha ao escrever no log: $entry");
         }
+    }
+
+    public static function head($bearer = false)
+    {
+        $headers = getallheaders();
+        $authorization = null;
+        $authorization = self::authorization($headers);
+
+        if (!$authorization && function_exists('apache_request_headers')) {
+            $headers = apache_request_headers();
+            $authorization = self::authorization($headers);
+        }
+
+        if ($bearer) {
+            if (strpos($authorization, 'Bearer ') === 0) {
+                $authorization = str_replace('Bearer ', '', $authorization);
+            } else {
+                return null;
+            }
+        }
+
+        return (!empty($authorization) && strlen($authorization) > 8) ? $authorization : null;
+    }
+
+    private static function authorization($headers)
+    {
+        $authorization = null;
+        $headers = array_change_key_case($headers, CASE_LOWER);
+
+        if (isset($headers['authorization'])) {
+            $authorization = $headers['authorization'];
+        } elseif (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+            $authorization = $_SERVER['HTTP_AUTHORIZATION'];
+        } elseif (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+            $authorization = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        } elseif (isset($_SERVER['Authorization'])) {
+            $authorization = $_SERVER['Authorization'];
+        } elseif (isset($_REQUEST['jwt'])) {
+            $authorization = 'Bearer ' . $_REQUEST['jwt'];
+        }
+
+        return $authorization;
+    }
+
+    /**
+     * Extrai o token do header Authorization com ou sem Bearer
+     * @param bool $bearer Se true, remove o prefixo "Bearer " do token
+     * @return string|null Retorna o token ou null se não encontrado
+     */
+    public static function getToken($bearer = true)
+    {
+        $token = self::head(false);
+
+        if (!$token) {
+            return null;
+        }
+
+        if ($bearer && strpos($token, 'Bearer ') === 0) {
+            return str_replace('Bearer ', '', $token);
+        }
+
+        return $token;
     }
 }

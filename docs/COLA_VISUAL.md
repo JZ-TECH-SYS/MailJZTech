@@ -252,14 +252,5 @@ src/
 ║  • Arquitetura MVC correta                                       ║
 ╚══════════════════════════════════════════════════════════════════╝
 
-# Documento arquivado
-
-Este documento foi simplificado.
-
-Para usar a API, consulte:
-
-- docs/INDEX.md — visão rápida (auth, endpoints e exemplo)
-- docs/REFERENCIA_API.md — referência completa dos endpoints
-
-Atualizado em: 2025-11-09
+Atualizado: 09/11/2025
 ```

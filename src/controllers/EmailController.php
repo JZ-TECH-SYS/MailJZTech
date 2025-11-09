@@ -44,6 +44,8 @@ class EmailController extends ctrl
             // Obter dados do body
             $dados = ctrl::getBody(true);
 
+            $dados['idsistema'] = $dados['idsistema'] ?? ctrl::getToken();
+
             // Validar campos obrigatórios
             ctrl::verificarCamposVazios($dados, ['idsistema', 'destinatario', 'assunto']);
 

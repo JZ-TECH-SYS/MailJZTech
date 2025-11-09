@@ -36,7 +36,8 @@ class Sistemas extends Model
     {
         return self::select()
             ->where('idsistema', $idsistema)
-            ->where('status', ' ')
+            ->orWhere('chave_api', $idsistema)
+            ->where('status', 'ativo')
             ->one();
     }
 
