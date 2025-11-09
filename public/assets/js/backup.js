@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ========================================
 async function carregarEstatisticas() {
     try {
-        const response = await fetchComToken(`${BASE_URL}/backup/estatisticas`);
+        const response = await fetchComToken('/backup/estatisticas');
         const data = await response.json();
 
         if (!data.error && data.result) {
@@ -80,7 +80,7 @@ async function carregarEstatisticas() {
 // ========================================
 async function carregarConfiguracoes() {
     try {
-        const response = await fetchComToken(`${BASE_URL}/backup/configuracoes`);
+        const response = await fetchComToken('/backup/configuracoes');
         const data = await response.json();
 
         const tbody = document.querySelector('#tabelaBackups tbody');
@@ -161,7 +161,7 @@ function abrirModalCriar() {
 
 async function abrirModalEditar(id) {
     try {
-        const response = await fetchComToken(`${BASE_URL}/backup/configuracoes/${id}`);
+        const response = await fetchComToken(`/backup/configuracoes/${id}`);
         const data = await response.json();
 
         if (!data.error && data.result) {
@@ -211,13 +211,13 @@ async function salvarConfiguracao() {
         let response;
         if (id) {
             // Atualizar
-            response = await fetchComToken(`${BASE_URL}/backup/configuracoes/${id}`, {
+            response = await fetchComToken(`/backup/configuracoes/${id}`, {
                 method: 'PUT',
                 body: JSON.stringify(dados)
             });
         } else {
             // Criar
-            response = await fetchComToken(`${BASE_URL}/backup/configuracoes`, {
+            response = await fetchComToken('/backup/configuracoes', {
                 method: 'POST',
                 body: JSON.stringify(dados)
             });
@@ -245,7 +245,7 @@ async function excluirConfiguracao(id, nome) {
     }
 
     try {
-        const response = await fetchComToken(`${BASE_URL}/backup/configuracoes/${id}`, {
+        const response = await fetchComToken(`/backup/configuracoes/${id}`, {
             method: 'DELETE'
         });
 
@@ -275,7 +275,7 @@ async function executarBackup(id) {
     mostrarInfo('Executando backup... Por favor aguarde.');
 
     try {
-        const response = await fetchComToken(`${BASE_URL}/backup/executar/${id}`, {
+        const response = await fetchComToken(`/backup/executar/${id}`, {
             method: 'POST'
         });
 
@@ -304,7 +304,7 @@ async function executarBackupManual() {
     mostrarInfo('Executando backup... Por favor aguarde.');
 
     try {
-        const response = await fetchComToken(`${BASE_URL}/backup/executar/${idConfig}`, {
+        const response = await fetchComToken(`/backup/executar/${idConfig}`, {
             method: 'POST'
         });
 
@@ -331,7 +331,7 @@ function verLogs(id) {
 // ========================================
 async function carregarLogs(idConfig) {
     try {
-        const response = await fetchComToken(`${BASE_URL}/backup/logs/${idConfig}?detalhado=true&limite=100`);
+        const response = await fetchComToken(`/backup/logs/${idConfig}?detalhado=true&limite=100`);
         const data = await response.json();
 
         const tbody = document.querySelector('#tabelaLogs tbody');
