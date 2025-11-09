@@ -59,6 +59,48 @@ class Sistemas
     }
 
     /**
+     * Cria um novo sistema com remetente informado (compatível com controller atual)
+     *
+     * @param int $idusuario
+     * @param string $nome
+     * @param string|null $descricao
+     * @param string $nomeRemetente
+     * @param string|null $emailRemetente
+     * @return array
+     */
+    public static function criarComRemetente($idusuario, $nome, $descricao, $nomeRemetente, $emailRemetente = null)
+    {
+        if (empty($nome) || empty($nomeRemetente)) {
+            return ['sucesso' => false, 'mensagem' => 'Nome e nome do remetente são obrigatórios'];
+        }
+
+        $chaveApi = self::gerarChaveApi();
+
+        $dados = [
+            'idusuario' => $idusuario,
+            'nome' => $nome,
+            'descricao' => $descricao ?? '',
+            'chave_api' => $chaveApi,
+            'status' => 'ativo',
+            'nome_remetente' => $nomeRemetente,
+            'email_remetente' => $emailRemetente ?: 'contato@jztech.com.br'
+        ];
+
+        $idsistema = SistemasModel::criar($dados);
+
+        if ($idsistema) {
+            return [
+                'sucesso' => true,
+                'mensagem' => 'Sistema criado com sucesso',
+                'idsistema' => $idsistema,
+                'chave_api' => $chaveApi
+            ];
+        }
+
+        return ['sucesso' => false, 'mensagem' => 'Erro ao criar sistema'];
+    }
+
+    /**
      * Atualiza um sistema
      *
      * @param int $idsistema ID do sistema
@@ -119,6 +161,15 @@ class Sistemas
     }
 
     /**
+     * Desativa um sistema sem validar usuário (uso administrativo)
+     */
+    public static function desativarSemUsuario($idsistema)
+    {
+        $resultado = SistemasModel::desativar($idsistema);
+        return $resultado ? ['sucesso' => true, 'mensagem' => 'Sistema deletado com sucesso'] : ['sucesso' => false, 'mensagem' => 'Erro ao deletar sistema'];
+    }
+
+    /**
      * Regenera a chave de API de um sistema
      *
      * @param int $idsistema ID do sistema
@@ -147,6 +198,22 @@ class Sistemas
     }
 
     /**
+     * Regenera a chave de API sem validar usuário (uso administrativo)
+     */
+    public static function regenerarChaveApiSemUsuario($idsistema)
+    {
+        $novaChave = SistemasModel::regenerarChaveApi($idsistema);
+        if ($novaChave) {
+            return [
+                'sucesso' => true,
+                'mensagem' => 'Chave de API regenerada com sucesso',
+                'chave_api' => $novaChave
+            ];
+        }
+        return ['sucesso' => false, 'mensagem' => 'Erro ao regenerar chave'];
+    }
+
+    /**
      * Obtém um sistema específico
      *
      * @param int $idsistema ID do sistema
@@ -165,6 +232,14 @@ class Sistemas
     }
 
     /**
+     * Obtém sistema apenas por ID (sem validação de usuário)
+     */
+    public static function obterPorId($idsistema)
+    {
+        return SistemasModel::getById($idsistema);
+    }
+
+    /**
      * Lista todos os sistemas de um usuário
      *
      * @param int $idusuario ID do usuário
@@ -176,6 +251,14 @@ class Sistemas
     }
 
     /**
+     * Lista todos os sistemas ativos (uso administrativo)
+     */
+    public static function listarTodos()
+    {
+        return SistemasModel::getAll();
+    }
+
+    /**
      * Valida uma chave de API
      *
      * @param string $chaveApi Chave de API
@@ -184,6 +267,14 @@ class Sistemas
     public static function validarChaveApi($chaveApi)
     {
         return SistemasModel::getByApiKey($chaveApi);
+    }
+
+    /**
+     * Verifica se um idsistema existe (ativo/inativo) — usado por controllers para validação leve
+     */
+    public static function existeId($idsistema)
+    {
+        return (bool) SistemasModel::getById($idsistema);
     }
 
     /**

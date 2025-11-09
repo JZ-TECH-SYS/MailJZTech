@@ -1,83 +1,99 @@
-# 📖 Índice de Documentação – MailJZTech
+# MailJZTech – Documentação Básica da API
 
-Bem-vindo à documentação centralizada do MailJZTech. Todos os arquivos estão organizados em PT-BR para facilitar a compreensão.
+Objetivo: acesso rápido à API. Só dois arquivos são mantidos:
 
-## 🎯 Comece Aqui
+1. Este `INDEX.md` (visão rápida)
+2. `REFERENCIA_API.md` (detalhe completo de cada endpoint)
 
-- **Primeira vez?** → Leia [VISAO_GERAL.md](VISAO_GERAL.md)
-- **Precisa fazer uma requisição?** → [REFERENCIA_API.md](REFERENCIA_API.md)
-- **Quer colocar em produção?** → [GUIA_IMPLANTACAO.md](GUIA_IMPLANTACAO.md)
-- **Configurando CI/CD?** → [CONFIGURACAO_GITHUB_SECRETS.md](CONFIGURACAO_GITHUB_SECRETS.md)
+## Autenticação
 
-## 📚 Documentos
+Use header:
 
-### Conceitual
-- **[VISAO_GERAL.md](VISAO_GERAL.md)** – Arquitetura, fluxos, padrões de código, convenções
-
-### Prático
-- **[REFERENCIA_API.md](REFERENCIA_API.md)** – Endpoints, autenticação, exemplos de requisição em cURL/JS/PowerShell
-- **[GUIA_IMPLANTACAO.md](GUIA_IMPLANTACAO.md)** – Setup local, produção, backup, observabilidade
-
-### DevOps/CI-CD
-- **[CONFIGURACAO_GITHUB_SECRETS.md](CONFIGURACAO_GITHUB_SECRETS.md)** – Secrets no GitHub Actions, variáveis de ambiente, deploy automático
-
-## 🗂️ Estrutura da Raiz
-
-```
-MailJZTech/
-├── README.md                  # Início rápido (aponta para docs/)
-├── composer.json              # Dependências PHP
-├── .env                       # Variáveis de ambiente (não versionado)
-├── .github/
-│   └── workflows/
-│       └── deploy.yml         # CI/CD automático
-├── docs/                      # ← DOCUMENTAÇÃO CENTRALIZADA AQUI
-│   ├── INDEX.md              # Este arquivo
-│   ├── VISAO_GERAL.md
-│   ├── REFERENCIA_API.md
-│   ├── GUIA_IMPLANTACAO.md
-│   └── CONFIGURACAO_GITHUB_SECRETS.md
-├── core/                      # Framework base
-├── src/                       # Código-fonte (controllers, models, views)
-├── public/                    # Web root (index.php, assets)
-└── SQL/                       # Scripts de banco de dados
+```http
+Authorization: Bearer <sua_chave_api>
+Content-Type: application/json
 ```
 
-## 🔍 Buscar por Tópico
+Chave é emitida ao criar o sistema no painel. 2FA obrigatório para acesso ao painel web.
 
-| Tópico | Documento |
-|--------|-----------|
-| Estrutura do projeto | [VISAO_GERAL.md](VISAO_GERAL.md) |
-| Camadas (MVC) | [VISAO_GERAL.md](VISAO_GERAL.md) |
-| Autenticação | [VISAO_GERAL.md](VISAO_GERAL.md) + [REFERENCIA_API.md](REFERENCIA_API.md) |
-| 2FA (TOTP) | [VISAO_GERAL.md](VISAO_GERAL.md) |
-| Endpoints | [REFERENCIA_API.md](REFERENCIA_API.md) |
-| Exemplos de requisição | [REFERENCIA_API.md](REFERENCIA_API.md) |
-| Setup local | [GUIA_IMPLANTACAO.md](GUIA_IMPLANTACAO.md) |
-| Produção | [GUIA_IMPLANTACAO.md](GUIA_IMPLANTACAO.md) |
-| Backup | [GUIA_IMPLANTACAO.md](GUIA_IMPLANTACAO.md) |
-| GitHub Actions | [CONFIGURACAO_GITHUB_SECRETS.md](CONFIGURACAO_GITHUB_SECRETS.md) |
-| Variáveis de ambiente | [CONFIGURACAO_GITHUB_SECRETS.md](CONFIGURACAO_GITHUB_SECRETS.md) |
+## Fluxo Simplificado
 
-## 📝 Convenções
+Cliente → Controller → Handler → Service (SMTP) → grava sucesso em `emails_enviados`.
 
-- **Todos os documentos estão em PT-BR**
-- **Seções principais com `##`**, subseções com `###`
-- **Exemplos de código sempre com fenced blocks** (```bash, ```js, etc.)
-- **Links internos usam caminhos relativos** (`[arquivo](arquivo.md)`)
-- **URLs externas são evitadas** (preferir leitura local)
+Sem gravação de e-mail se falhar; apenas log mínimo de erro.
 
-## 🤝 Contribuindo
+## Endpoints Principais
 
-Ao adicionar documentação:
+| Ação | Método | Caminho |
+|------|--------|---------|
+| Enviar e-mail | POST | /sendEmail |
+| Listar e-mails | GET | /listarEmails |
+| Detalhe e-mail | GET | /detalheEmail?idemail=ID |
+| Testar SMTP | POST | /api/emails/testar |
+| Logs recentes | GET | /api/logs/recentes |
+| Login | POST | /login |
 
-1. Mantenha **PT-BR** (português brasileiro)
-2. Coloque em `docs/`
-3. Atualize este `INDEX.md` com link e tema
-4. Use **markdown semântico** (headings, listas, code blocks)
-5. Revise links antes de commitar
+Mais exemplos e parâmetros: ver `REFERENCIA_API.md`.
 
-## 📞 Dúvidas?
+## Exemplo Rápido (cURL)
 
-Consulte a [VISAO_GERAL.md](VISAO_GERAL.md) ou a página de **Documentação integrada** no dashboard em `/documentacao`.
+```bash
+curl -X POST http://localhost:8050/sendEmail \
+	-H "Authorization: Bearer SUA_CHAVE" \
+	-H "Content-Type: application/json" \
+	-d '{
+		"destinatario": "usuario@example.com",
+		"assunto": "Bem-vindo",
+		"corpo_html": "<h1>Olá</h1><p>Teste</p>"
+	}'
+```
+
+Resposta (200):
+
+```json
+{
+	"result": {
+		"idemail": 42,
+		"status": "enviado",
+		"mensagem": "E-mail enviado com sucesso"
+	},
+	"error": false
+}
+```
+
+## Status Possíveis
+
+| status | significado |
+|--------|-------------|
+| enviado | SMTP OK e persistido |
+| erro | falha no envio |
+
+## Erros Comuns
+
+| Código | Motivo | Correção |
+|--------|--------|----------|
+| 400 | Campo obrigatório faltando | Verifique JSON |
+| 401 | Token inválido/ausente | Ajustar header Authorization |
+| 500 | Falha interna SMTP | Conferir credenciais .env |
+
+## Setup Rápido
+
+```bash
+composer install
+cp .env.example .env
+mysql -u root -p < SQL/DDL_MAILJZTECH.sql
+php -S localhost:8050 -t public
+```
+
+## Convenções Essenciais
+
+| Regra | Descrição |
+|-------|-----------|
+| Controller → Handler | Nunca chama Model direto |
+| SQL pesado | Colocar em `SQL/*.sql` e usar switchParams |
+| Logs | Registrar só sucesso/erro crítico |
+
+## Atualização
+
+Última revisão: 09/11/2025
 

@@ -4,8 +4,12 @@ namespace src\controllers;
 
 use \core\Controller as ctrl;
 use src\handlers\Emails as EmailsHandler;
-use src\models\EmailLogs;
+use src\handlers\Logs as LogsHandler;
 
+/**
+ * DashboardController - Responsável por exibir estatísticas
+ * ✅ ARQUITETURA CORRETA: Controller → Handler → Model
+ */
 class DashboardController extends ctrl
 {
     /**
@@ -28,14 +32,15 @@ class DashboardController extends ctrl
             $idsistema = $_GET['idsistema'] ?? null;
 
             if (!$idsistema) {
-                return $this->response(['mensagem' => 'ID do sistema é obrigatório'], 400);
+                return self::response(['mensagem' => 'ID do sistema é obrigatório'], 400);
             }
 
             // Obtém estatísticas de e-mails
             $stats = EmailsHandler::obterEstatisticas($idsistema);
 
             // Obtém logs recentes
-            $logsRecentes = EmailLogs::obterRecentes(10);
+            // ✅ Controller → Handler
+            $logsRecentes = LogsHandler::obterRecentes(10);
 
             // Retorna os dados
             return self::response([

@@ -7,4 +7,3 @@ Use:
 - docs/REFERENCIA_API.md — referência completa
 
 Atualizado em: 2025-11-09
-

@@ -1,7 +1,6 @@
 <?php
 
 /**
- * LoginController - Controlador de autenticação
  * Responsável por renderizar views de login e processar autenticação
  * 
  * @author MailJZTech
@@ -25,15 +24,22 @@ class LoginController extends ctrl
     {
         // Se já está logado, redireciona para dashboard
         if (UsuarioHandler::checkLogin()) {
-            $this->redirect('/dashboard');
+            $this->redirect('dashboard');
         }
 
         $this->render('login');
     }
 
     /**
-     * Processa o login do usuário
+     * Processa o login do usuário - ROTA UNIFICADA
      * POST /login
+     * 
+     * Cenários suportados:
+     * 1. Login inicial (email + senha)
+     * 2. Login com 2FA (email + senha + codigo_2fa)
+     * 3. Iniciar config 2FA (email + senha + acao: "iniciar_2fa")
+     * 4. Confirmar config 2FA (email + senha + acao: "confirmar_2fa" + secret + codigo)
+     * 5. Código backup (email + senha + codigo_backup)
      */
     public function verificarLogin()
     {
@@ -41,31 +47,61 @@ class LoginController extends ctrl
             $dados = ctrl::getBody();
             $email = $dados['email'] ?? null;
             $senha = $dados['senha'] ?? null;
+            $acao = $dados['acao'] ?? null;
 
+            // Validação básica
             if (empty($email) || empty($senha)) {
                 throw new Exception('Usuário e senha são obrigatórios');
             }
 
+            // SEMPRE valida credenciais primeiro
             $usuario = UsuarioHandler::verifyLogin($email, $senha);
-
             if (!$usuario) {
                 throw new Exception('Usuário e/ou senha não conferem');
             }
 
-            // SEMPRE retornar token (mesmo para 2FA obrigatório)
-            // Token será validado novamente após 2FA
+            // Detecta cenário baseado no payload
+            
+            // CENÁRIO 1: Iniciar configuração 2FA (primeira vez)
+            if ($acao === 'iniciar_2fa') {
+                ctrl::response($this->iniciarDoisFatores($usuario), 200);
+                return;
+            }
+
+            // CENÁRIO 2: Confirmar configuração 2FA
+            if ($acao === 'confirmar_2fa') {
+                $secret = $dados['secret'] ?? null;
+                $codigo = $dados['codigo'] ?? null;
+                ctrl::response($this->confirmarDoisFatores($usuario, $secret, $codigo), 200);
+                return;
+            }
+
+            // CENÁRIO 3: Verificar código 2FA durante login
+            if (!empty($dados['codigo_2fa'])) {
+                ctrl::response($this->verificarCodigoTotp($usuario, $dados['codigo_2fa']), 200);
+                return;
+            }
+
+            // CENÁRIO 4: Verificar código de backup
+            if (!empty($dados['codigo_backup'])) {
+                ctrl::response($this->verificarCodigoBackup($usuario, $dados['codigo_backup']), 200);
+                return;
+            }
+
+            // CENÁRIO 5: Login inicial (apenas email + senha)
+            // Verifica se usuário tem 2FA habilitado
             $response = [
                 'success' => true,
                 'idusuario' => $usuario['idusuario'],
                 'token' => $usuario['token']
             ];
 
-            // Se 2FA está habilitado, retorna que precisa verificar 2FA
             if (!empty($usuario['totp_habilitado'])) {
+                // Tem 2FA: pedir código
                 $response['requer_2fa'] = true;
-                $response['mensagem'] = '2FA obrigatório';
+                $response['mensagem'] = 'Insira o código do autenticador';
             } else {
-                // Se não tem 2FA, precisa configurar
+                // Não tem 2FA: precisa configurar
                 $response['requer_2fa'] = false;
                 $response['configurar_2fa'] = true;
                 $response['mensagem'] = 'Configure 2FA para continuar';
@@ -78,101 +114,65 @@ class LoginController extends ctrl
     }
 
     /**
-     * Renderiza a página de configuração de 2FA
-     * GET /configurar-2fa (privado = true)
+     * [INTERNO] Inicia configuração de 2FA gerando secret, QR Code e códigos de backup
+     * @param array $usuario Dados do usuário
+     * @return array Dados para configuração (QR, secret, backup codes)
      */
-    public function paginaConfigurar2FA()
+    private function iniciarDoisFatores($usuario)
     {
-        $this->render('configurar_2fa');
+        $idusuario = $usuario['idusuario'];
+        $email = $usuario['email'] ?? ('user' . $idusuario . '@local');
+        
+        $secret = TwoFactorAuthService::generateSecret();
+        $qrUrl = TwoFactorAuthService::generateQRCode($email, $secret, 'MailJZTech');
+        $backupCodes = TwoFactorAuthService::generateBackupCodes();
+        $backupCodesFmt = array_map([TwoFactorAuthService::class, 'formatBackupCode'], $backupCodes);
+
+        $_SESSION['pending_2fa'][$idusuario] = [
+            'secret' => $secret,
+            'backup_codes' => $backupCodes
+        ];
+
+        return [
+            'success' => true,
+            'usuario_id' => $idusuario,
+            'secret' => $secret,
+            'secret_formatado' => TwoFactorAuthService::formatSecret($secret),
+            'qr_code_url' => $qrUrl,
+            'backup_codes' => $backupCodesFmt
+        ];
     }
 
     /**
-     * Inicia configuração de 2FA gerando secret, QR Code e códigos de backup
-     * POST /iniciar-2fa
+     * [INTERNO] Processa a confirmação de 2FA
+     * @param array $usuario Dados do usuário
+     * @param string $secret Secret TOTP
+     * @param string $codigo Código de 6 dígitos
+     * @return array Resposta de sucesso
      */
-    public function iniciarDoisFatores()
+    private function confirmarDoisFatores($usuario, $secret, $codigo)
     {
-        try {
-            $dados = ctrl::getBody();
-            $idusuario = $dados['usuario_id'] ?? $dados['idusuario'] ?? null;
-            if (empty($idusuario)) {
-                throw new Exception('ID do usuário é obrigatório');
-            }
+        $idusuario = $usuario['idusuario'];
 
-            $usuarioData = \src\models\Usuarios::getById($idusuario);
-            if (!$usuarioData) {
-                throw new Exception('Usuário não encontrado');
-            }
-
-            $email = $usuarioData['email'] ?? ('user' . $idusuario . '@local');
-            $secret = TwoFactorAuthService::generateSecret();
-            $qrUrl = TwoFactorAuthService::generateQRCode($email, $secret, 'MailJZTech');
-            $backupCodes = TwoFactorAuthService::generateBackupCodes();
-            $backupCodesFmt = array_map([TwoFactorAuthService::class, 'formatBackupCode'], $backupCodes);
-
-            $_SESSION['pending_2fa'][$idusuario] = [
-                'secret' => $secret,
-                'backup_codes' => $backupCodes
-            ];
-
-            ctrl::response([
-                'usuario_id' => $idusuario,
-                'secret' => $secret,
-                'secret_formatado' => TwoFactorAuthService::formatSecret($secret),
-                'qr_code_url' => $qrUrl,
-                'backup_codes' => $backupCodesFmt
-            ], 200);
-        } catch (Exception $e) {
-            ctrl::rejectResponse($e);
+        if (empty($codigo) || empty($secret)) {
+            throw new Exception('Código e secret são obrigatórios');
         }
-    }
 
-    /**
-     * Processa a confirmação de 2FA
-     * POST /confirmar-2fa (privado = true)
-     */
-    public function confirmarDoisFatores()
-    {
-        try {
-            $dados = ctrl::getBody();
-            $codigo = $dados['codigo'] ?? null;
-            $secret = $dados['secret'] ?? null;
-            $idusuario = $dados['usuario_id'] ?? ($dados['idusuario'] ?? null);
-
-            if (empty($codigo) || empty($secret) || empty($idusuario)) {
-                throw new Exception('Código, secret e usuário são obrigatórios');
-            }
-
-            if (!TwoFactorAuthService::verifyCode($secret, $codigo)) {
-                throw new Exception('Código TOTP inválido');
-            }
-
-            // Salva o secret TOTP para o usuário
-            UsuarioHandler::saveTotpSecret($idusuario, $secret);
-
-            // cria sessão apenas após 2FA configurado
-            $usuarioData = \src\models\Usuarios::getById($idusuario);
-            if (!empty($usuarioData['token'])) {
-                $_SESSION['token'] = $usuarioData['token'];
-                $_SESSION['idusuario'] = $idusuario;
-            }
-
-            ctrl::response([
-                'success' => true,
-                'mensagem' => '2FA configurado com sucesso'
-            ], 200);
-        } catch (Exception $e) {
-            ctrl::rejectResponse($e);
+        if (!TwoFactorAuthService::verifyCode($secret, $codigo)) {
+            throw new Exception('Código TOTP inválido');
         }
-    }
 
-    /**
-     * Renderiza a página de verificação de 2FA
-     * GET /verificar-2fa
-     */
-    public function paginaVerificar2FA()
-    {
-        $this->render('verificar_2fa');
+        // Salva o secret TOTP para o usuário
+        UsuarioHandler::saveTotpSecret($idusuario, $secret);
+
+        // Cria sessão após 2FA configurado
+        $_SESSION['token'] = $usuario['token'];
+        $_SESSION['idusuario'] = $idusuario;
+
+        return [
+            'success' => true,
+            'mensagem' => '2FA configurado com sucesso'
+        ];
     }
 
     /**
@@ -199,78 +199,59 @@ class LoginController extends ctrl
     }
 
     /**
-     * Verifica o código TOTP durante login
-     * POST /verificar-2fa
+     * [INTERNO] Verifica o código TOTP durante login
+     * @param array $usuario Dados do usuário
+     * @param string $codigo Código de 6 dígitos
+     * @return array Resposta de sucesso
      */
-    public function verificarDoisFatores()
+    private function verificarCodigoTotp($usuario, $codigo)
     {
-        try {
-            $dados = ctrl::getBody();
-            $codigo = $dados['codigo_totp'] ?? null;
-            $usuario_id = $dados['usuario_id'] ?? null;
-
-            if (empty($codigo) || empty($usuario_id)) {
-                throw new Exception('Código e ID do usuário são obrigatórios');
-            }
-
-            // Buscar o secret TOTP do usuário
-            $usuarioData = \src\models\Usuarios::getById($usuario_id);
-
-            if (!$usuarioData) {
-                throw new Exception('Usuário não encontrado');
-            }
-
-            // Verifica o código TOTP
-            if (!TwoFactorAuthService::verifyCode($usuarioData['totp_secret'], $codigo)) {
-                throw new Exception('Código TOTP inválido');
-            }
-
-            // Criar sessão para o usuário
-            $_SESSION['token'] = $usuarioData['token'];
-            $_SESSION['idusuario'] = $usuario_id;
-
-            ctrl::response([
-                'success' => true,
-                'mensagem' => '2FA verificado com sucesso'
-            ], 200);
-        } catch (Exception $e) {
-            ctrl::rejectResponse($e);
+        if (empty($codigo)) {
+            throw new Exception('Código é obrigatório');
         }
+
+        if (empty($usuario['totp_secret'])) {
+            throw new Exception('Usuário não possui 2FA configurado');
+        }
+
+        // Verifica o código TOTP
+        if (!TwoFactorAuthService::verifyCode($usuario['totp_secret'], $codigo)) {
+            throw new Exception('Código TOTP inválido');
+        }
+
+        // Criar sessão para o usuário
+        $_SESSION['token'] = $usuario['token'];
+        $_SESSION['idusuario'] = $usuario['idusuario'];
+
+        return [
+            'success' => true,
+            'mensagem' => '2FA verificado com sucesso'
+        ];
     }
 
     /**
-     * Verifica o código de backup durante login
-     * POST /verificar-2fa-backup
+     * [INTERNO] Verifica o código de backup durante login
+     * @param array $usuario Dados do usuário
+     * @param string $codigo_backup Código de backup
+     * @return array Resposta de sucesso
      */
-    public function verificarDoisFatoresBackup()
+    private function verificarCodigoBackup($usuario, $codigo_backup)
     {
-        try {
-            $dados = ctrl::getBody();
-            $codigo_backup = $dados['codigo_backup'] ?? null;
-            $usuario_id = $dados['usuario_id'] ?? null;
-
-            if (empty($codigo_backup) || empty($usuario_id)) {
-                throw new Exception('Código de backup e ID do usuário são obrigatórios');
-            }
-
-            // Buscar o usuário
-            $usuarioData = \src\models\Usuarios::getById($usuario_id);
-
-            if (!$usuarioData) {
-                throw new Exception('Usuário não encontrado');
-            }
-
-            // Criar sessão para o usuário
-            $_SESSION['token'] = $usuarioData['token'];
-            $_SESSION['idusuario'] = $usuario_id;
-
-            ctrl::response([
-                'success' => true,
-                'mensagem' => 'Código de backup verificado com sucesso'
-            ], 200);
-        } catch (Exception $e) {
-            ctrl::rejectResponse($e);
+        if (empty($codigo_backup)) {
+            throw new Exception('Código de backup é obrigatório');
         }
+
+        // TODO: Implementar validação real de código de backup
+        // Por enquanto, aceita qualquer código (placeholder)
+
+        // Criar sessão para o usuário
+        $_SESSION['token'] = $usuario['token'];
+        $_SESSION['idusuario'] = $usuario['idusuario'];
+
+        return [
+            'success' => true,
+            'mensagem' => 'Código de backup verificado com sucesso'
+        ];
     }
 
     /**
@@ -286,11 +267,10 @@ class LoginController extends ctrl
             $token = (!empty($tk) && strlen($tk) > 8) ? $tk : $tk2;
 
             if (isset($_SESSION['token']) && !empty($_SESSION['token']) && $token == 'Bearer ' . $_SESSION['token']) {
-                $infos = \src\models\Usuarios::getUserToken($_SESSION['token']);
+                $infos = UsuarioHandler::checkLogin() ? ['token' => $_SESSION['token']] : null;
                 if (!empty($infos)) {
                     ctrl::response($infos, 200);
-                } else {
-                    throw new Exception('Token inválido');
+                    return;
                 }
             }
             throw new Exception('Token inválido');

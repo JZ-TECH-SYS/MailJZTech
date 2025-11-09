@@ -3,270 +3,252 @@
 namespace src\controllers;
 
 use core\Controller as ctrl;
-use Exception;
-use src\handlers\service\EmailService;
-use src\models\Sistemas;
-use src\models\Emails;
+use src\handlers\Emails as EmailsHandler;
+use src\handlers\Sistemas as SistemasHandler;
 
 /**
- * EmailController - Responsável por gerenciar requisições de envio de e-mails
+ * Controller para gerenciar operações de e-mail
+ * Segue arquitetura: Controller → Handler → Service → Model
+ *
+ * @author MailJZTech
+ * @date 2025-01-09
  */
 class EmailController extends ctrl
 {
-    /**
-     * Envia um e-mail através da API
-     * 
-     * Requisição POST /sendEmail
-     * Headers: Authorization: Bearer {chave_api}
-     * 
-     * Body JSON:
-     * {
-     *   "destinatario": "usuario@example.com",
-     *   "assunto": "Assunto do e-mail",
-     *   "corpo_html": "<h1>Olá</h1>",
-     *   "corpo_texto": "Olá (opcional)",
-     *   "cc": ["cc@example.com"] ou "cc@example.com",
-     *   "bcc": ["bcc@example.com"] ou "bcc@example.com",
-     *   "anexos": [
-     *     {
-     *       "nome": "documento.pdf",
-     *       "caminho": "/path/to/file.pdf"
-     *     }
-     *   ]
-     * }
-     */
-    public function sendEmail()
-    {
-        try {
-            // Validar autenticação
-            $sistema = $this->validarApiKey();
-            if (!$sistema) {
-                throw new Exception('Chave de API inválida ou não fornecida');
-            }
-
-            // Obter dados da requisição
-            $dados = ctrl::getBody();
-
-            // Validar campos obrigatórios
-            ctrl::verificarCamposVazios($dados, ['destinatario', 'assunto', 'corpo_html']);
-
-            // Enviar e-mail
-            $resultado = EmailService::sendEmail(
-                $sistema['idsistema'],
-                $dados['destinatario'],
-                $dados['assunto'],
-                $dados['corpo_html'],
-                $dados['corpo_texto'] ?? null,
-                $dados['cc'] ?? null,
-                $dados['bcc'] ?? null,
-                $dados['anexos'] ?? null,
-                $sistema['nome_remetente']
-            );
-
-            if ($resultado['success']) {
-                ctrl::response([
-                    'mensagem' => $resultado['message'],
-                    'idemail' => $resultado['idemail'],
-                    'status' => $resultado['status']
-                ], 200);
-            } else {
-                ctrl::response([
-                    'mensagem' => $resultado['message'],
-                    'idemail' => $resultado['idemail'] ?? null,
-                    'erro' => $resultado['error']
-                ], 400);
-            }
-
-        } catch (Exception $e) {
-            ctrl::rejectResponse($e);
-        }
-    }
-
-    /**
-     * Lista e-mails enviados por um sistema
-     * 
-     * GET /listarEmails?limite=50&pagina=1
-     */
-    public function listarEmails()
-    {
-        try {
-            // Validar autenticação
-            $sistema = $this->validarApiKey();
-            if (!$sistema) {
-                throw new Exception('Chave de API inválida ou não fornecida');
-            }
-
-            // Parâmetros de paginação
-            $limite = $_GET['limite'] ?? 50;
-            $pagina = $_GET['pagina'] ?? 1;
-            $offset = ($pagina - 1) * $limite;
-
-            // Obter e-mails
-            $emails = Emails::getBySystem($sistema['idsistema'], $limite, $offset);
-            $total = Emails::countBySystem($sistema['idsistema']);
-
-            ctrl::response([
-                'emails' => $emails,
-                'total' => $total,
-                'pagina' => $pagina,
-                'limite' => $limite,
-                'paginas_totais' => ceil($total / $limite)
-            ], 200);
-
-        } catch (Exception $e) {
-            ctrl::rejectResponse($e);
-        }
-    }
-
-    /**
-     * Obtém detalhes de um e-mail específico
-     * 
-     * GET /detalheEmail?idemail={id}
-     */
-    public function detalheEmail()
-    {
-        try {
-            // Validar autenticação
-            $sistema = $this->validarApiKey();
-            if (!$sistema) {
-                throw new Exception('Chave de API inválida ou não fornecida');
-            }
-
-            // Obter ID do e-mail da URL
-            $idemail = $_GET['idemail'] ?? null;
-            if (!$idemail) {
-                throw new Exception('ID do e-mail não fornecido');
-            }
-
-            // Obter e-mail
-            $email = Emails::getById($idemail);
-            if (!$email) {
-                throw new Exception('E-mail não encontrado');
-            }
-
-            // Verificar se o e-mail pertence ao sistema
-            if ($email['idsistema'] != $sistema['idsistema']) {
-                throw new Exception('Você não tem permissão para acessar este e-mail');
-            }
-
-            ctrl::response($email, 200);
-
-        } catch (Exception $e) {
-            ctrl::rejectResponse($e);
-        }
-    }
-
-    /**
-     * Obtém estatísticas de e-mails de um sistema
-     * 
-     * GET /statsEmails
-     */
-    public function statsEmails()
-    {
-        try {
-            // Validar autenticação
-            $sistema = $this->validarApiKey();
-            if (!$sistema) {
-                throw new Exception('Chave de API inválida ou não fornecida');
-            }
-
-            // Obter estatísticas
-            $stats = Emails::obterEstatisticas($sistema['idsistema']);
-
-            ctrl::response($stats, 200);
-
-        } catch (Exception $e) {
-            ctrl::rejectResponse($e);
-        }
-    }
-
-    /**
-     * Testa a configuração de e-mail
-     * 
-     * POST /testarEmail
-     * Body: { "email_teste": "seu@email.com" }
-     */
-    public function testarEmail()
-    {
-        try {
-            $dados = ctrl::getBody();
-            ctrl::verificarCamposVazios($dados, ['email_teste']);
-
-            $resultado = EmailService::testEmailConfiguration($dados['email_teste']);
-
-            if ($resultado['success']) {
-                ctrl::response([
-                    'mensagem' => 'E-mail de teste enviado com sucesso',
-                    'status' => 'enviado'
-                ], 200);
-            } else {
-                ctrl::response([
-                    'mensagem' => $resultado['message'],
-                    'erro' => $resultado['error']
-                ], 400);
-            }
-
-        } catch (Exception $e) {
-            ctrl::rejectResponse($e);
-        }
-    }
-
-    /**
-     * Valida a configuração de e-mail
-     * 
-     * GET /validarConfigEmail
-     */
-    public function validarConfigEmail()
-    {
-        try {
-            $resultado = EmailService::validateEmailConfiguration();
-
-            if ($resultado['valid']) {
-                ctrl::response([
-                    'mensagem' => 'Configuração de e-mail válida',
-                    'status' => 'ok'
-                ], 200);
-            } else {
-                ctrl::response([
-                    'mensagem' => 'Configuração de e-mail inválida',
-                    'erros' => $resultado['errors']
-                ], 400);
-            }
-
-        } catch (Exception $e) {
-            ctrl::rejectResponse($e);
-        }
-    }
-
-    /**
-     * Renderiza a página de histórico de e-mails
-     * GET /emails
-     */
     public function index()
     {
         $this->render('emails');
     }
 
     /**
-     * Valida a chave de API e retorna o sistema
+     * Envia um e-mail
+     * POST /api/emails/send
+     *
+     * Body:
+     * {
+     *   "idsistema": 1,
+     *   "destinatario": "usuario@exemplo.com",
+     *   "assunto": "Título do e-mail",
+     *   "corpo_html": "<h1>HTML</h1>",
+     *   "corpo_texto": "Texto alternativo",
+     *   "cc": "cc@exemplo.com", // opcional
+     *   "bcc": "bcc@exemplo.com", // opcional
+     *   "anexos": [] // opcional
+     * }
+     *
+     * @return void
      */
-    private function validarApiKey()
+    public function sendEmail()
     {
-        // Obter header de autorização
-        $headers = getallheaders();
-        $authHeader = $headers['Authorization'] ?? null;
+        try {
+            // Obter dados do body
+            $dados = ctrl::getBody(true);
 
-        if (!$authHeader) {
-            return null;
+            // Validar campos obrigatórios
+            ctrl::verificarCamposVazios($dados, ['idsistema', 'destinatario', 'assunto']);
+
+            // Verificar se corpo_html ou corpo_texto existe
+            if (empty($dados['corpo_html']) && empty($dados['corpo_texto'])) {
+                throw new \Exception('corpo_html ou corpo_texto é obrigatório');
+            }
+
+            // Validação leve do sistema via handler (sem acessar model direto)
+            if (!SistemasHandler::existeId($dados['idsistema'])) {
+                throw new \Exception('Sistema não encontrado');
+            }
+
+            // Obter ID do usuário da sessão/token
+            $idusuario = $_SESSION['user']['idusuario'] ?? 0;
+
+            // Chamar handler (Controller → Handler)
+            $resultado = EmailsHandler::enviar(
+                $dados['idsistema'],
+                $idusuario,
+                $dados
+            );
+
+            // Retornar resultado
+            if ($resultado['sucesso']) {
+                ctrl::response($resultado, 200);
+            } else {
+                ctrl::response($resultado, 400);
+            }
+
+        } catch (\Exception $e) {
+            ctrl::log("Erro em sendEmail: " . $e->getMessage());
+            ctrl::rejectResponse($e);
         }
+    }
 
-        // Extrair chave de API do header "Bearer {chave}"
-        if (strpos($authHeader, 'Bearer ') === 0) {
-            $chaveApi = substr($authHeader, 7);
-            $sistema = Sistemas::getByApiKey($chaveApi);
-            return $sistema;
+    /**
+     * Lista e-mails enviados de um sistema
+     * GET /api/emails/listar?idsistema=1&limite=50&offset=0
+     *
+     * @return void
+     */
+    public function listarEmails()
+    {
+        try {
+            // Obter parâmetros da query string
+            $idsistema = $_GET['idsistema'] ?? null;
+            $limite = (int)($_GET['limite'] ?? 50);
+            $offset = (int)($_GET['offset'] ?? 0);
+
+            // Validar sistema
+            if (!$idsistema) {
+                throw new \Exception('idsistema é obrigatório');
+            }
+
+            // Validar sistema existe via handler
+            if (!SistemasHandler::existeId($idsistema)) {
+                throw new \Exception('Sistema não encontrado');
+            }
+
+            // Chamar handler (Controller → Handler)
+            $emails = EmailsHandler::listar($idsistema, $limite, $offset);
+            $total = EmailsHandler::contar($idsistema);
+
+            // Retornar resultado
+            ctrl::response([
+                'emails' => $emails,
+                'total' => $total,
+                'limite' => $limite,
+                'offset' => $offset
+            ], 200);
+
+        } catch (\Exception $e) {
+            ctrl::log("Erro em listarEmails: " . $e->getMessage());
+            ctrl::rejectResponse($e);
         }
+    }
 
-        return null;
+    /**
+     * Obtém detalhes de um e-mail específico
+     * GET /api/emails/obter?idemail=123
+     *
+     * @return void
+     */
+    public function obterEmail()
+    {
+        try {
+            // Obter ID do e-mail e sistema
+            $idemail = $_GET['idemail'] ?? null;
+            $idsistema = $_GET['idsistema'] ?? null;
+
+            if (!$idemail) {
+                throw new \Exception('idemail é obrigatório');
+            }
+
+            if (!$idsistema) {
+                throw new \Exception('idsistema é obrigatório');
+            }
+
+            // Chamar handler (Controller → Handler)
+            $email = EmailsHandler::obter($idemail, $idsistema);
+
+            if (!$email) {
+                ctrl::response(['mensagem' => 'E-mail não encontrado'], 404);
+                return;
+            }
+
+            // Retornar resultado
+            ctrl::response($email, 200);
+
+        } catch (\Exception $e) {
+            ctrl::log("Erro em obterEmail: " . $e->getMessage());
+            ctrl::rejectResponse($e);
+        }
+    }
+
+    /**
+     * Obtém estatísticas de e-mails
+     * GET /api/emails/estatisticas?idsistema=1
+     *
+     * @return void
+     */
+    public function obterEstatisticas()
+    {
+        try {
+            // Obter parâmetros
+            $idsistema = $_GET['idsistema'] ?? null;
+
+            if (!$idsistema) {
+                throw new \Exception('idsistema é obrigatório');
+            }
+
+            // Chamar handler (Controller → Handler)
+            $estatisticas = EmailsHandler::obterEstatisticas($idsistema);
+
+            // Retornar resultado
+            ctrl::response($estatisticas, 200);
+
+        } catch (\Exception $e) {
+            ctrl::log("Erro em obterEstatisticas: " . $e->getMessage());
+            ctrl::rejectResponse($e);
+        }
+    }
+
+    /**
+     * Testa configuração de e-mail
+     * POST /api/emails/testar
+     *
+     * Body:
+     * {
+     *   "email_teste": "teste@exemplo.com"
+     * }
+     *
+     * @return void
+     */
+    public function testarConfiguracao()
+    {
+        try {
+            // Obter dados do body
+            $dados = ctrl::getBody(true);
+
+            // Validar campo
+            ctrl::verificarCamposVazios($dados, ['email_teste']);
+
+            // Obter ID do usuário da sessão/token
+            $idusuario = $_SESSION['user']['idusuario'] ?? 0;
+
+            // Chamar handler (Controller → Handler)
+            $resultado = EmailsHandler::testar($dados['email_teste'], $idusuario);
+
+            // Retornar resultado
+            if ($resultado['sucesso']) {
+                ctrl::response($resultado, 200);
+            } else {
+                ctrl::response($resultado, 400);
+            }
+
+        } catch (\Exception $e) {
+            ctrl::log("Erro em testarConfiguracao: " . $e->getMessage());
+            ctrl::rejectResponse($e);
+        }
+    }
+
+    /**
+     * Valida configuração SMTP
+     * GET /api/emails/validar-configuracao
+     *
+     * @return void
+     */
+    public function validarConfiguracao()
+    {
+        try {
+            // Chamar handler (Controller → Handler)
+            $resultado = EmailsHandler::validarConfiguracao();
+
+            // Retornar resultado
+            if ($resultado['valido']) {
+                ctrl::response($resultado, 200);
+            } else {
+                ctrl::response($resultado, 400);
+            }
+
+        } catch (\Exception $e) {
+            ctrl::log("Erro em validarConfiguracao: " . $e->getMessage());
+            ctrl::rejectResponse($e);
+        }
     }
 }

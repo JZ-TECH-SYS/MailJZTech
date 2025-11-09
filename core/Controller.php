@@ -28,11 +28,22 @@ class Controller
 
     private function _render($folder, $viewName, $viewData = [])
     {
-        if (file_exists('../src/views/' . $folder . '/' . $viewName . '.php')) {
+        // Suporta caminhos com subpastas: 'login/login', 'sistemas/criar_sistema', etc
+        $filePath = '../src/views/' . $folder . '/' . $viewName . '.php';
+        
+        // Se o arquivo não existe, tenta verificar se $viewName é uma pasta com index.php
+        if (!file_exists($filePath)) {
+            $alternativePath = '../src/views/' . $folder . '/' . $viewName . '/index.php';
+            if (file_exists($alternativePath)) {
+                $filePath = $alternativePath;
+            }
+        }
+        
+        if (file_exists($filePath)) {
             extract($viewData);
             $render = fn ($vN, $vD = []) => $this->renderPartial($vN, $vD);
             $base = $this->getBaseUrl();
-            require '../src/views/' . $folder . '/' . $viewName . '.php';
+            require $filePath;
         }
     }
 

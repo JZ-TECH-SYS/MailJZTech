@@ -15,19 +15,9 @@ $router->get('/login', 'LoginController@index');
 // ==========================================
 // AUTENTICAÇÃO (API - POST)
 // ==========================================
-$router->post('/login', 'LoginController@verificarLogin');
-$router->post('/iniciar-2fa', 'LoginController@iniciarDoisFatores');
-$router->post('/confirmar-2fa', 'LoginController@confirmarDoisFatores');
-$router->post('/verificar-2fa', 'LoginController@verificarDoisFatores');
-$router->post('/verificar-2fa-backup', 'LoginController@verificarDoisFatoresBackup');
 $router->get('/sair', 'LoginController@logout', true);
 $router->get('/validaToken', 'LoginController@validaToken');
-
-// ==========================================
-// CONFIGURAÇÃO DE 2FA (Views - GET)
-// ==========================================
-$router->get('/configurar-2fa', 'LoginController@paginaConfigurar2FA', true);
-$router->get('/verificar-2fa', 'LoginController@paginaVerificar2FA');
+$router->post('/login', 'LoginController@verificarLogin');
 
 // ==========================================
 // DASHBOARD (Views - GET)

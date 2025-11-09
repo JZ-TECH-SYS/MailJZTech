@@ -5,8 +5,6 @@ namespace src\handlers\service;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 use src\Config;
-use src\models\Emails;
-use src\models\EmailLogs;
 
 class EmailService
 {
@@ -34,25 +32,10 @@ class EmailService
         $cc = null,
         $bcc = null,
         $anexos = null,
-        $nomeRemetente = 'MailJZTech'
+        $nomeRemetente = 'MailJZTech',
+        $idusuario = 0
     ): array {
         try {
-            // Criar registro do e-mail no banco ANTES de enviar
-            $emailData = [
-                'idsistema' => $idsistema,
-                'destinatario' => $destinatario,
-                'cc' => $cc ? json_encode(is_array($cc) ? $cc : [$cc]) : null,
-                'bcc' => $bcc ? json_encode(is_array($bcc) ? $bcc : [$bcc]) : null,
-                'assunto' => $assunto,
-                'corpo_html' => $htmlBody,
-                'corpo_texto' => $altBody,
-                'anexos' => $anexos ? json_encode($anexos) : null,
-                'status' => 'pendente'
-            ];
-
-            $resultInsert = Emails::criar($emailData);
-            $idemail = $resultInsert;
-
             $mail = new PHPMailer(true);
 
             // Configuração do servidor SMTP
@@ -111,50 +94,26 @@ class EmailService
             // Envia o e-mail
             $mail->send();
 
-            // Atualizar status para enviado
-            Emails::atualizarStatus($idemail, 'enviado');
-
-            // Registrar log
-            EmailLogs::criar($idemail, $idsistema, 0, 'enviado', 'E-mail enviado com sucesso via SMTP');
-
             return [
                 'success' => true,
                 'message' => 'E-mail enviado com sucesso',
-                'idemail' => $idemail,
-                'status' => 'enviado',
                 'service' => 'phpmailer'
             ];
 
         } catch (Exception $e) {
-            // Se o e-mail foi criado, atualizar status para erro
-            if (isset($idemail)) {
-                $errorMsg = $e->getMessage();
-                Emails::atualizarStatus($idemail, 'erro', $errorMsg);
-                EmailLogs::criar($idemail, $idsistema, 0, 'erro', $errorMsg);
-            }
-
             return [
                 'success' => false,
                 'error' => true,
                 'message' => 'Erro ao enviar e-mail: ' . $e->getMessage(),
-                'details' => $mail->ErrorInfo ?? '',
-                'idemail' => $idemail ?? null,
+                'details' => isset($mail) ? ($mail->ErrorInfo ?? '') : '',
                 'service' => 'phpmailer'
             ];
         } catch (\Throwable $e) {
-            // Se o e-mail foi criado, atualizar status para erro
-            if (isset($idemail)) {
-                $errorMsg = $e->getMessage();
-                Emails::atualizarStatus($idemail, 'erro', $errorMsg);
-                EmailLogs::criar($idemail, $idsistema, 0, 'erro', $errorMsg);
-            }
-
             return [
                 'success' => false,
                 'error' => true,
                 'message' => 'Erro inesperado ao enviar e-mail',
                 'details' => $e->getMessage(),
-                'idemail' => $idemail ?? null,
                 'service' => 'phpmailer'
             ];
         }
@@ -179,7 +138,8 @@ class EmailService
             null,
             null,
             null,
-            'MailJZTech Test'
+            'MailJZTech Test',
+            0 // idusuario = 0 para testes
         );
     }
 

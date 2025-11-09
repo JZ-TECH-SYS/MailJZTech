@@ -1,6 +1,3 @@
-<?php
-// Não renderizar header/footer para página de login
-?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -711,8 +708,8 @@
                 <p>Configure a autenticação de dois fatores para sua conta</p>
             </div>
 
-            <div class="qr-code-container">
-                <img id="qrCode" src="" alt="QR Code" style="display: none;">
+            <div class="qr-code-container" id="qrCodeContainer" style="display: none;">
+                <img id="qrCode" src="" alt="QR Code">
                 <p id="qrLoading" style="color: #b0b8d4;"><i class="fas fa-spinner fa-spin"></i> Gerando QR Code...</p>
             </div>
 
@@ -832,7 +829,7 @@
             document.getElementById('secret').value = data.secret;
             document.getElementById('usuarioId').value = data.usuario_id;
             document.getElementById('qrCode').src = data.qr_code_url;
-            document.getElementById('qrCode').style.display = 'block';
+            document.getElementById('qrCodeContainer').style.display = 'block';
             document.getElementById('qrLoading').style.display = 'none';
 
             // Mostrar blocos de configuração
@@ -863,8 +860,7 @@
             form.setAttribute('data-modo', 'verificar');
             document.getElementById('usuarioId').value = dados.idusuario;
             // Esconder QR e secret
-            document.getElementById('qrCode').style.display = 'none';
-            document.getElementById('qrLoading').style.display = 'none';
+            document.getElementById('qrCodeContainer').style.display = 'none';
             document.querySelector('.secret-container').style.display = 'none';
             document.getElementById('backupCodesContainer').classList.remove('show');
             // Título e descrição
@@ -941,11 +937,15 @@
                         // Usuário já tem 2FA: abrir modal somente para verificar código
                         mostrarModalVerificar2FA(data);
                     } else if (data.configurar_2fa) {
-                        // Necessário configurar: chamar iniciar-2fa para obter secret/QR
-                        const initResp = await fetchComToken('<?php echo $base; ?>/iniciar-2fa', {
+                        // Necessário configurar: chamar POST /login com acao=iniciar_2fa
+                        const initResp = await fetch('<?php echo $base; ?>/login', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ usuario_id: data.idusuario })
+                            body: JSON.stringify({ 
+                                email: document.getElementById('email').value,
+                                senha: document.getElementById('senha').value,
+                                acao: 'iniciar_2fa' 
+                            })
                         });
                         const initEnvelope = await initResp.json();
                         console.debug('INICIAR-2FA envelope:', initEnvelope);
@@ -978,23 +978,26 @@
 
             try {
                 const modo = this.getAttribute('data-modo') || 'config';
-                let url = '<?php echo $base; ?>/confirmar-2fa';
+                const email = document.getElementById('email').value;
+                const senha = document.getElementById('senha').value;
+                const codigo = document.getElementById('codigoTOTP').value;
+
                 let payload = {
-                    usuario_id: document.getElementById('usuarioId').value,
-                    codigo: document.getElementById('codigoTOTP').value
+                    email: email,
+                    senha: senha
                 };
+
                 if (modo === 'config') {
+                    // Confirmar configuração de 2FA
+                    payload.acao = 'confirmar_2fa';
                     payload.secret = document.getElementById('secret').value;
+                    payload.codigo = codigo;
                 } else {
-                    // verificar 2FA durante login
-                    url = '<?php echo $base; ?>/verificar-2fa';
-                    payload = {
-                        usuario_id: document.getElementById('usuarioId').value,
-                        codigo_totp: document.getElementById('codigoTOTP').value
-                    };
+                    // Verificar 2FA durante login
+                    payload.codigo_2fa = codigo;
                 }
 
-                const response = await fetchComToken(url, {
+                const response = await fetch('<?php echo $base; ?>/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)

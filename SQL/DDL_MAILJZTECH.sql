@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS `emails_logs` (
   `idemail` INT NULL,
   `idsistema` INT NOT NULL,
   `idusuario` INT NOT NULL,
-  `tipo_log` ENUM('envio', 'criacao', 'atualizacao', 'erro', 'autenticacao', 'validacao') DEFAULT 'envio',
+  `tipo_log` VARCHAR(32) DEFAULT 'envio',
   `mensagem` TEXT NOT NULL,
   `dados_adicionais` JSON NULL COMMENT 'Dados adicionais em JSON',
   `ip_origem` VARCHAR(45) NULL,

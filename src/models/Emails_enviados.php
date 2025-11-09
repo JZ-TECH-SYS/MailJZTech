@@ -12,7 +12,7 @@ use core\Database;
  * @author MailJZTech
  * @date 2025-01-01
  */
-class Emails extends Model
+class Emails_enviados extends Model
 {
     /**
      * Obtém todos os e-mails de um sistema com paginação
@@ -53,7 +53,7 @@ class Emails extends Model
      */
     public static function criar($dados)
     {
-        return self::insert([
+        $payload = [
             'idsistema' => $dados['idsistema'],
             'idusuario' => $dados['idusuario'],
             'destinatario' => $dados['destinatario'],
@@ -64,7 +64,13 @@ class Emails extends Model
             'corpo_texto' => $dados['corpo_texto'] ?? null,
             'anexos' => $dados['anexos'] ?? null,
             'status' => $dados['status'] ?? 'pendente'
-        ])->execute();
+        ];
+
+        if (!empty($dados['data_envio'])) {
+            $payload['data_envio'] = $dados['data_envio'];
+        }
+
+        return self::insert($payload)->execute();
     }
 
     /**
@@ -100,7 +106,7 @@ class Emails extends Model
      */
     public static function countBySystem($idsistema)
     {
-        $result = self::select(['*'])
+        $result = self::select()
             ->where('idsistema', $idsistema)
             ->count();
         

@@ -19,8 +19,7 @@ package-lock.json
 pnpm-lock.yaml
 
 # Logs
-logs/
-*.log
+logs
 npm-debug.log*
 
 # Temporary files

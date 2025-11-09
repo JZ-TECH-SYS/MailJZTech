@@ -12,7 +12,7 @@ use core\Database;
  * @author MailJZTech
  * @date 2025-01-01
  */
-class EmailLogs extends Model
+class Emails_logs extends Model
 {
     /**
      * Sobrescreve o nome da tabela para usar underscores

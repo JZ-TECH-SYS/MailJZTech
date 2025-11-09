@@ -27,14 +27,12 @@ Acesse: **http://localhost:8050**
 
 ## 📚 Documentação
 
-Toda documentação está centralizada em `docs/`:
+Mantemos apenas o essencial:
 
-| Documento | Conteúdo |
-|-----------|----------|
-| [docs/VISAO_GERAL.md](docs/VISAO_GERAL.md) | Arquitetura, fluxos, padrões e convenções |
-| [docs/REFERENCIA_API.md](docs/REFERENCIA_API.md) | Endpoints e exemplos de requisição (cURL, JS, PowerShell) |
-| [docs/GUIA_IMPLANTACAO.md](docs/GUIA_IMPLANTACAO.md) | Setup, produção, backup e observabilidade |
-| [docs/CONFIGURACAO_GITHUB_SECRETS.md](docs/CONFIGURACAO_GITHUB_SECRETS.md) | Variáveis de ambiente e CI/CD |
+| Documento | Descrição |
+|-----------|-----------|
+| [docs/INDEX.md](docs/INDEX.md) | Visão rápida: autenticação, endpoints principais, exemplo |
+| [docs/REFERENCIA_API.md](docs/REFERENCIA_API.md) | Detalhe completo de cada endpoint |
 
 ## ✨ Características
 
@@ -117,9 +115,10 @@ Veja: [docs/CONFIGURACAO_GITHUB_SECRETS.md](docs/CONFIGURACAO_GITHUB_SECRETS.md)
 
 ## 📞 Suporte
 
-- **Documentação integrada**: Dashboard > Documentação
-- **Contato**: contato@jztech.com.br
-- **Issues**: GitHub Repository
+- Índice: [docs/INDEX.md](docs/INDEX.md)
+- Referência completa: [docs/REFERENCIA_API.md](docs/REFERENCIA_API.md)
+- Contato: <contato@jztech.com.br>
+- Issues: GitHub Repository
 
 ## 📄 Licença
 

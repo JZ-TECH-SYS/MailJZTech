@@ -2,9 +2,10 @@
 
 namespace src\handlers;
 
-use src\models\Emails as EmailsModel;
-use src\models\EmailLogs as EmailLogsModel;
+use src\models\Emails_enviados;
+use src\models\Emails_logs;
 use src\handlers\service\EmailService;
+use src\handlers\Sistemas as SistemasHandler;
 
 /**
  * Handler para lógica de negócio de Emails
@@ -25,37 +26,24 @@ class Emails
      */
     public static function enviar($idsistema, $idusuario, $dados)
     {
-        // Validações
-        if (empty($dados['destinatario'])) {
-            return ['sucesso' => false, 'mensagem' => 'Destinatário é obrigatório'];
+        // Pressupõe validação anterior no Controller/core (mantendo simples aqui)
+
+        // Garantir idusuario válido (FK): se vazio, usa dono do sistema
+        $idusuarioLog = $idusuario;
+        if (empty($idusuarioLog) || !is_numeric($idusuarioLog)) {
+            $sistema = SistemasHandler::obterPorId($idsistema);
+            if (!empty($sistema['idusuario'])) {
+                $idusuarioLog = (int)$sistema['idusuario'];
+            } else {
+                return ['sucesso' => false, 'mensagem' => 'Usuário não identificado para este sistema'];
+            }
         }
 
-        if (empty($dados['assunto'])) {
-            return ['sucesso' => false, 'mensagem' => 'Assunto é obrigatório'];
-        }
-
-        if (empty($dados['corpo_html']) && empty($dados['corpo_texto'])) {
-            return ['sucesso' => false, 'mensagem' => 'Corpo do e-mail é obrigatório'];
-        }
-
-        // Cria registro de e-mail
-        $idEmail = EmailsModel::criar([
-            'idsistema' => $idsistema,
-            'idusuario' => $idusuario,
-            'destinatario' => $dados['destinatario'],
-            'cc' => $dados['cc'] ?? null,
-            'bcc' => $dados['bcc'] ?? null,
-            'assunto' => $dados['assunto'],
-            'corpo_html' => $dados['corpo_html'] ?? null,
-            'corpo_texto' => $dados['corpo_texto'] ?? null,
-            'anexos' => isset($dados['anexos']) ? json_encode($dados['anexos']) : null,
-            'status' => 'pendente'
+        // Log básico de tentativa
+        Emails_logs::criar(null, $idsistema, $idusuarioLog, 'envio', 'Tentando enviar e-mail', [
+            'destinatario' => $dados['destinatario'] ?? null,
+            'assunto' => $dados['assunto'] ?? null
         ]);
-
-        if (!$idEmail) {
-            EmailLogsModel::criar(null, $idsistema, $idusuario, 'erro', 'Falha ao criar registro de e-mail');
-            return ['sucesso' => false, 'mensagem' => 'Erro ao criar registro de e-mail'];
-        }
 
         // Tenta enviar o e-mail
         try {
@@ -68,13 +56,29 @@ class Emails
                 $dados['cc'] ?? null,
                 $dados['bcc'] ?? null,
                 $dados['anexos'] ?? null,
-                $dados['nome_remetente'] ?? 'MailJZTech'
+                $dados['nome_remetente'] ?? 'MailJZTech',
+                $idusuario  // ✅ Passar idusuario
             );
 
             if ($resultado['success']) {
-                // Atualiza status para enviado
-                EmailsModel::atualizarStatus($idEmail, 'enviado');
-                EmailLogsModel::criar($idEmail, $idsistema, $idusuario, 'envio', 'E-mail enviado com sucesso');
+                // Cria registro apenas no sucesso
+                $idEmail = Emails_enviados::criar([
+                    'idsistema' => $idsistema,
+                    'idusuario' => $idusuarioLog,
+                    'destinatario' => $dados['destinatario'],
+                    'cc' => isset($dados['cc']) ? (is_array($dados['cc']) ? json_encode($dados['cc']) : $dados['cc']) : null,
+                    'bcc' => isset($dados['bcc']) ? (is_array($dados['bcc']) ? json_encode($dados['bcc']) : $dados['bcc']) : null,
+                    'assunto' => $dados['assunto'],
+                    'corpo_html' => $dados['corpo_html'] ?? null,
+                    'corpo_texto' => $dados['corpo_texto'] ?? null,
+                    'anexos' => isset($dados['anexos']) ? json_encode($dados['anexos']) : null,
+                    'status' => 'enviado',
+                    'data_envio' => date('Y-m-d H:i:s')
+                ]);
+
+                Emails_logs::criar($idEmail, $idsistema, $idusuarioLog, 'envio', 'E-mail enviado com sucesso', [
+                    'timestamp' => date('Y-m-d H:i:s')
+                ]);
 
                 return [
                     'sucesso' => true,
@@ -82,24 +86,28 @@ class Emails
                     'idemail' => $idEmail
                 ];
             } else {
-                // Atualiza status para erro
-                EmailsModel::atualizarStatus($idEmail, 'erro', $resultado['message']);
-                EmailLogsModel::criar($idEmail, $idsistema, $idusuario, 'erro', 'Falha ao enviar: ' . $resultado['message']);
+                // Falha: loga e retorna
+                Emails_logs::criar(null, $idsistema, $idusuarioLog, 'erro', 'Falha no envio de e-mail', [
+                    'erro' => $resultado['message'] ?? 'sem mensagem'
+                ]);
 
                 return [
                     'sucesso' => false,
                     'mensagem' => 'Erro ao enviar e-mail: ' . $resultado['message'],
-                    'idemail' => $idEmail
+                    'idemail' => null
                 ];
             }
-        } catch (\Exception $e) {
-            EmailsModel::atualizarStatus($idEmail, 'erro', $e->getMessage());
-            EmailLogsModel::criar($idEmail, $idsistema, $idusuario, 'erro', 'Exceção: ' . $e->getMessage());
+    } catch (\Exception $e) {
+            Emails_logs::criar(null, $idsistema, $idusuarioLog, 'erro', 'Exceção durante envio de e-mail', [
+                'excecao' => $e->getMessage(),
+                'arquivo' => $e->getFile(),
+                'linha' => $e->getLine()
+            ]);
 
             return [
                 'sucesso' => false,
                 'mensagem' => 'Erro ao enviar e-mail: ' . $e->getMessage(),
-                'idemail' => $idEmail
+                'idemail' => null
             ];
         }
     }
@@ -108,19 +116,21 @@ class Emails
      * Obtém um e-mail específico
      *
      * @param int $idemail ID do e-mail
-     * @param int $idusuario ID do usuário (para validação)
+     * @param int $idsistema ID do sistema (para validação)
      * @return array|false Retorna os dados do e-mail
      */
-    public static function obter($idemail, $idusuario)
+    public static function obter($idemail, $idsistema)
     {
-        $email = EmailsModel::getById($idemail);
+        $email = Emails_enviados::getById($idemail);
 
         if (!$email) {
             return false;
         }
 
-        // Verifica se o e-mail pertence ao usuário (via sistema)
-        // Aqui você pode adicionar validação se necessário
+        // Verifica se o e-mail pertence ao sistema
+        if ($email['idsistema'] != $idsistema) {
+            return false;
+        }
 
         return $email;
     }
@@ -135,7 +145,7 @@ class Emails
      */
     public static function listar($idsistema, $limite = 50, $offset = 0)
     {
-        return EmailsModel::getBySystem($idsistema, $limite, $offset);
+        return Emails_enviados::getBySystem($idsistema, $limite, $offset);
     }
 
     /**
@@ -146,20 +156,21 @@ class Emails
      */
     public static function obterEstatisticas($idsistema)
     {
-        return EmailsModel::obterEstatisticas($idsistema);
+        return Emails_enviados::obterEstatisticas($idsistema);
     }
 
     /**
      * Testa a configuração de e-mail
      *
      * @param string $email E-mail de teste
+     * @param int $idusuario ID do usuário (para logs)
      * @return array Retorna resultado do teste
      */
-    public static function testar($email)
+    public static function testar($email, $idusuario = 0)
     {
         try {
             $resultado = EmailService::sendEmail(
-                0, // idsistema para teste
+                0, // idsistema para teste (não logamos em tabela para evitar FK)
                 $email,
                 'Teste de Configuração - MailJZTech',
                 '<h1>Teste de Configuração</h1><p>Se você recebeu este e-mail, a configuração está funcionando corretamente.</p>',
@@ -167,7 +178,8 @@ class Emails
                 null,
                 null,
                 null,
-                'MailJZTech Teste'
+                'MailJZTech Teste',
+                $idusuario
             );
 
             return [
@@ -180,5 +192,26 @@ class Emails
                 'mensagem' => 'Erro ao testar: ' . $e->getMessage()
             ];
         }
+    }
+
+    /**
+     * Conta total de e-mails de um sistema
+     *
+     * @param int $idsistema ID do sistema
+     * @return int Retorna o total
+     */
+    public static function contar($idsistema)
+    {
+        return Emails_enviados::countBySystem($idsistema);
+    }
+
+    /**
+     * Valida configuração de e-mail
+     *
+     * @return array Retorna se a configuração é válida
+     */
+    public static function validarConfiguracao()
+    {
+        return EmailService::validateEmailConfiguration();
     }
 }

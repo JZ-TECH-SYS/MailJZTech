@@ -1,4 +1,3 @@
-```instructions
 # MailJZTech – Guia de Padrões para Código e Arquitetura
 
 Objetivo: manter consistência no MVC do projeto, padronizar como escrever controllers, handlers, models e services, e quando usar Query Builder vs SQL complexo (Database::switchParams).
@@ -41,6 +40,11 @@ Objetivo: manter consistência no MVC do projeto, padronizar como escrever contr
   - Formato: `{ result: <dados>, error: <bool> }`
 - Logs de app: `ctrl::log($conteudo)` grava em `../logs/app.log`.
 
+### Regra Estrita de Arquitetura (OBRIGATÓRIA)
+- Controller NUNCA chama Model diretamente. Controller → Handler → (Service) → Model.
+- Controller pode validar inputs e permissões; qualquer consulta ou CRUD deve ser delegado ao Handler.
+- Se o Controller precisar validar existência de entidades (ex.: idsistema), use um método do Handler (ex.: `SistemasHandler::existeId(...)`).
+
 ### Esqueleto de ação
 try/catch obrigatórios envolvendo leitura de body, validação e resposta.
 
@@ -65,6 +69,7 @@ try/catch obrigatórios envolvendo leitura de body, validação e resposta.
 - Centralizam validações e orquestram models/services. Expor métodos estáticos quando possível.
 - Não renderizam views; retornam dados para o controller responder.
 - Sem acesso direto a superglobais; passar dados como parâmetros.
+- Devem prover helpers simples para validações comuns usadas por controllers (ex.: `existeId`, `listarTodos`, `obterPorId`).
 
 ## Services
 - Email: `src\\handlers\\service\\EmailService::sendEmail(...)` (estático). Usa PHPMailer com credenciais em `src\\Config`.
@@ -94,7 +99,8 @@ try/catch obrigatórios envolvendo leitura de body, validação e resposta.
 2) Handler (estático):
    - `class ProdutosHandler { public static function listar(){ return Produtos::getAtivos(); } }`
 3) Controller:
-   - `public function listarProdutos(){ try { $dados = ProdutosHandler::listar(); ctrl::response($dados,200); } catch(\\Exception $e){ ctrl::rejectResponse($e); } }`
+  - `public function listarProdutos(){ try { $dados = ProdutosHandler::listar(); ctrl::response($dados,200); } catch(\\Exception $e){ ctrl::rejectResponse($e); } }`
+  - `// ERRADO: Produtos::select()->get(); // Controller NUNCA chama Model`
 4) Rota:
    - `$router->get('/api/produtos','ProdutosController@listarProdutos', true);`
 
@@ -103,5 +109,3 @@ try/catch obrigatórios envolvendo leitura de body, validação e resposta.
   - Atualize chamadas em toda a base.
   - Remova estados internos. Passe dependências como parâmetros.
   - Para models, continue usando a API estática do `core\\Model` (já compatível).
-
-```
