@@ -79,5 +79,33 @@ $router->post('/testarEmail', 'EmailController@testarEmail', true);
 $router->get('/validarConfigEmail', 'EmailController@validarConfigEmail');
 
 // ==========================================
+// BACKUPS (Views - GET)
+// ==========================================
+$router->get('/backup', 'BackupController@index', true);
+$router->get('/backup/logs/{id}', 'BackupController@logs', true);
+
+// ==========================================
+// BACKUPS (API - CRUD Configurações)
+// ==========================================
+$router->get('/api/backup/configuracoes', 'BackupController@listar', true);
+$router->get('/api/backup/configuracoes/{id}', 'BackupController@obter', true);
+$router->post('/api/backup/configuracoes', 'BackupController@criar', true);
+$router->put('/api/backup/configuracoes/{id}', 'BackupController@atualizar', true);
+$router->delete('/api/backup/configuracoes/{id}', 'BackupController@excluir', true);
+
+// ==========================================
+// BACKUPS (API - Execução)
+// ==========================================
+$router->post('/api/backup/executar/{id}', 'BackupController@executarManual', true);
+$router->post('/api/backup/executar', 'BackupController@executarCron', true); // Cron (requer TOKEN_JV)
+$router->post('/api/backup/limpar-antigos/{id}', 'BackupController@limparAntigos', true);
+
+// ==========================================
+// BACKUPS (API - Consultas)
+// ==========================================
+$router->get('/api/backup/logs/{id}', 'BackupController@obterLogs', true);
+$router->get('/api/backup/estatisticas', 'BackupController@obterEstatisticas', true);
+
+// ==========================================
 // FIM DAS ROTAS
 // ==========================================

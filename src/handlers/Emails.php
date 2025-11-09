@@ -6,6 +6,7 @@ use src\models\Emails_enviados;
 use src\models\Emails_logs;
 use src\handlers\service\EmailService;
 use src\handlers\Sistemas as SistemasHandler;
+use core\Controller as ctrl;
 
 /**
  * Handler para lógica de negócio de Emails
@@ -16,6 +17,84 @@ use src\handlers\Sistemas as SistemasHandler;
  */
 class Emails
 {
+
+    /**
+     * Envia relatório de backups via cron
+     * @param array $dados Dados do relatório
+     */
+    public static function enviarRelatorioBackupsCron($dados)
+    {
+        $html = <<<HTML
+        <html>
+            <head>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
+                .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden; }
+                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+                .header h1 { margin: 0; font-size: 24px; }
+                .header p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; }
+                .content { padding: 30px; }
+                .content h2 { color: #333; margin-top: 0; }
+                .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 25px 0; }
+                .stat-box { background-color: #f9f9f9; border-left: 4px solid #667eea; padding: 15px; border-radius: 4px; }
+                .stat-box strong { display: block; color: #667eea; font-size: 16px; }
+                .stat-box span { display: block; font-size: 28px; font-weight: bold; color: #333; margin-top: 5px; }
+                .stat-box.success { border-left-color: #10b981; }
+                .stat-box.success strong { color: #10b981; }
+                .stat-box.error { border-left-color: #ef4444; }
+                .stat-box.error strong { color: #ef4444; }
+                .footer { background-color: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #eee; }
+                .footer a { color: #667eea; text-decoration: none; }
+            </style>
+            </head>
+            <body>
+            <div class="container">
+                <div class="header">
+                <h1>📋 Relatório de Backups</h1>
+                <p>{$dados['data_execucao']}</p>
+                </div>
+                <div class="content">
+                <p>{$dados['mensagem']}</p>
+                <div class="stats">
+                    <div class="stat-box">
+                    <strong>Total</strong>
+                    <span>{$dados['total']}</span>
+                    </div>
+                    <div class="stat-box success">
+                    <strong>Sucesso</strong>
+                    <span>{$dados['sucesso']}</span>
+                    </div>
+                    <div class="stat-box error">
+                    <strong>Erros</strong>
+                    <span>{$dados['erros']}</span>
+                    </div>
+                </div>
+                </div>
+                <div class="footer">
+                <p>MailJZTech © 2025 | Relatório automático</p>
+                </div>
+            </div>
+            </body>
+        </html>
+        HTML;
+
+        try {
+            EmailService::sendEmail(
+                0, // idsistema 0 para cron
+                'jv.zyzz.legado@gmail.com', // Destinatário fixo para relatórios
+                'Relatório de Backups - ' . date('Y-m-d H:i:s'),
+                $html,
+                null,
+                'Zehenrique0822@gmail.com',
+            );
+        } catch (\Exception $e) {
+            ctrl::log("Erro ao enviar relatório de backups via cron: " . $e->getMessage());
+            return;
+        }
+    }
+
+
     /**
      * Envia um e-mail
      *
@@ -97,7 +176,7 @@ class Emails
                     'idemail' => null
                 ];
             }
-    } catch (\Exception $e) {
+        } catch (\Exception $e) {
             Emails_logs::criar(null, $idsistema, $idusuarioLog, 'erro', 'Exceção durante envio de e-mail', [
                 'excecao' => $e->getMessage(),
                 'arquivo' => $e->getFile(),
@@ -226,7 +305,7 @@ class Emails
     {
         // Obtém estatísticas usando SQL complexo
         $statsRaw = self::obterEstatisticas($idsistema);
-        
+
         // Garante que todos os campos existam
         $stats = [
             'total' => (int)($statsRaw['total'] ?? 0),
@@ -234,7 +313,7 @@ class Emails
             'erros' => (int)($statsRaw['erros'] ?? 0),
             'pendentes' => (int)($statsRaw['pendentes'] ?? 0)
         ];
-        
+
         // Obtém últimos e-mails usando Query Builder
         if (!empty($idsistema)) {
             $ultimosEmails = Emails_enviados::getBySystem($idsistema, $limite, 0);

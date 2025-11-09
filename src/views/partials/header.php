@@ -51,8 +51,13 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'logs') !== false ? 'active' : ''; ?>" href="<?php echo $base; ?>/logs">
+                        <a class="nav-link <?php echo (strpos($_SERVER['REQUEST_URI'], 'logs') !== false && strpos($_SERVER['REQUEST_URI'], 'backup') === false) ? 'active' : ''; ?>" href="<?php echo $base; ?>/logs">
                             <i class="fas fa-list"></i> Logs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'backup') !== false ? 'active' : ''; ?>" href="<?php echo $base; ?>/backup">
+                            <i class="fas fa-database"></i> Backups
                         </a>
                     </li>
                     <li class="nav-item">

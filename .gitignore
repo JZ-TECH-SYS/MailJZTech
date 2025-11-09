@@ -27,6 +27,8 @@ tmp/
 temp/
 *.tmp
 
+bkp.json
+
 # OS
 .DS_Store
 Thumbs.db
