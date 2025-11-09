@@ -1,11 +1,32 @@
-# Documento arquivado
+# Configuração de Secrets no GitHub
 
-Este conteúdo foi condensado. Para uso da API, utilize:
+Para que o deploy automático gere `.env` corretamente, adicione estes secrets no GitHub:
 
-- docs/INDEX.md — visão rápida de autenticação e endpoints
-- docs/REFERENCIA_API.md — referência completa de parâmetros
+Caminho: **Settings > Secrets and variables > Actions > New repository secret**
 
-Atualizado em: 2025-11-09
+## Secrets obrigatórios
+
+### Credenciais FTP (para deploy)
+
+- `FTP_SERVER`: ex. `ftp.mailjztech.com`
+- `FTP_USERNAME`: ex. `seu_usuario_ftp`
+- `FTP_PASSWORD`: sua senha FTP
+
+### Configuração de Banco de Dados
+
+- `DB_DRIVER`: `mysql`
+- `DB_HOST`: ex. `mysql.mailjztech.com`
+- `DB_PORT`: `3306`
+- `DB_DATABASE`: ex. `mailjz_prod`
+- `DB_USER`: ex. `mailjz_user`
+- `DB_PASS`: senha do banco
+
+### Configuração de E-mail (SMTP)
+
+- `EMAIL_API`: ex. `contato@mailjztech.com`
+- `SENHA_EMAIL_API`: senha SMTP (da conta de e-mail)
+- `SMTP_HOST`: ex. `smtp.hostinger.com`
+- `SMTP_PORT`: `587` ou `465`
 
 ### Configuração da Aplicação
 
