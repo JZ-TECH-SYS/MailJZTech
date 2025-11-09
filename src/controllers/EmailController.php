@@ -59,12 +59,12 @@ class EmailController extends ctrl
                 throw new \Exception('Sistema não encontrado');
             }
 
-            // Obter ID do usuário da sessão/token
+            $sistema = SistemasHandler::obterPorId($dados['idsistema']);
             $idusuario = $_SESSION['user']['idusuario'] ?? 0;
 
             // Chamar handler (Controller → Handler)
             $resultado = EmailsHandler::enviar(
-                $dados['idsistema'],
+                $sistema['idsistema'],
                 $idusuario,
                 $dados
             );
