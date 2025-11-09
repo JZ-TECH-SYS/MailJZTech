@@ -78,7 +78,7 @@
     // Carregar sistemas via AJAX
     async function carregarSistemas() {
         try {
-            const response = await fetchComToken('<?php echo $base; ?>/listarSistemas');
+            const response = await fetchComToken('/listarSistemas');
             const data = await response.json();
             
             const tbody = document.querySelector('#tabelaSistemas tbody');

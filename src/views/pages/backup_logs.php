@@ -119,7 +119,6 @@
 
 <script>
     // Definir variáveis globais para o backup.js
-    const BASE_URL = '<?php echo $base; ?>';
     const idConfig = <?php echo (int)($viewData['config']['idbackup_banco_config'] ?? 0); ?>;
     const nomeConfig = <?php echo json_encode($viewData['config']['nome_banco'] ?? ''); ?>;
 </script>

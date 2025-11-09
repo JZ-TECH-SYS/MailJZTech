@@ -181,7 +181,7 @@ const limite = 20;
 // Carregar sistemas para o filtro
 async function carregarSistemas() {
     try {
-        const response = await fetchComToken('<?php echo $base; ?>/listarSistemas');
+        const response = await fetchComToken('/listarSistemas');
         const data = await response.json();
         
         if (!data.error && data.result) {
@@ -214,7 +214,7 @@ async function carregarEmails(pagina = 1) {
         `;
 
         // Construir URL com filtros
-        let url = `<?php echo $base; ?>/listarEmails?limite=${limite}&pagina=${pagina}`;
+        let url = `/listarEmails?limite=${limite}&pagina=${pagina}`;
         
         const idsistema = document.getElementById('filtroSistema').value;
         const status = document.getElementById('filtroStatus').value;
@@ -374,7 +374,7 @@ async function verDetalhes(idemail) {
     modal.show();
 
     try {
-        const response = await fetchComToken(`<?php echo $base; ?>/detalheEmail/${idemail}`);
+        const response = await fetchComToken(`/detalheEmail/${idemail}`);
         const data = await response.json();
 
         if (!data.error && data.result) {

@@ -323,7 +323,7 @@ async function executarBackupManual() {
 }
 
 function verLogs(id) {
-    window.location.href = `${BASE_URL}/backup/logs/${id}`;
+    window.location.href = `${BASE_API}/backup/logs/${id}`;
 }
 
 // ========================================

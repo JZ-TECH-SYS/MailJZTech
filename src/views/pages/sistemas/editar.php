@@ -152,7 +152,7 @@
                 ativo: document.getElementById('ativo').checked ? 1 : 0
             };
             
-            const response = await fetchComToken(`<?php echo $base; ?>/atualizarSistema/${idsistema}`, {
+            const response = await fetchComToken(`/atualizarSistema/${idsistema}`, {
                 method: 'PUT',
                 body: JSON.stringify(dados)
             });

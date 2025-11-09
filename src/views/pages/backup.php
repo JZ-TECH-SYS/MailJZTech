@@ -167,10 +167,6 @@
     </div>
 </div>
 
-<script>
-    // Definir BASE_URL para o backup.js
-    const BASE_URL = '<?php echo $base; ?>';
-</script>
 <script src="<?php echo $base; ?>/assets/js/backup.js"></script>
 
 <?php $render('footer'); ?>

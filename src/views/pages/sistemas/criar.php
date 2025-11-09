@@ -127,7 +127,7 @@ document.getElementById('formCriarSistema').addEventListener('submit', async (e)
             nome_remetente: document.getElementById('nome_remetente').value.trim()
         };
         
-        const response = await fetchComToken('<?php echo $base; ?>/criarSistema', {
+        const response = await fetchComToken('/criarSistema', {
             method: 'POST',
             body: JSON.stringify(formData)
         });

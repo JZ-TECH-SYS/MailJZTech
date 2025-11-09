@@ -119,7 +119,7 @@
             `;
 
             // Construir URL com filtros
-            let url = `<?php echo $base; ?>/logs/listar?pagina=${pagina}&limite=${limitePorPagina}`;
+            let url = `/logs/listar?pagina=${pagina}&limite=${limitePorPagina}`;
             
             const tipo = document.getElementById('filtroTipo').value;
             const dataInicial = document.getElementById('filtroDataInicial').value;
@@ -312,7 +312,7 @@
         modal.show();
 
         try {
-            const response = await fetchComToken(`<?php echo $base; ?>/logs/detalhe/${idlog}`);
+            const response = await fetchComToken(`/logs/detalhe/${idlog}`);
             const data = await response.json();
             
             if (!data.error && data.result) {

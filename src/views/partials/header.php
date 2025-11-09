@@ -10,9 +10,12 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="<?php echo $base; ?>/assets/css/custom.css">
-    
     <!-- Font Awesome (opcional) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        const BASE_API = '<?php echo $base; ?>';
+    </script>
     
     <!-- Auth JS (Token Manager) -->
     <script src="<?php echo $base; ?>/assets/js/auth.js"></script>
