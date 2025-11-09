@@ -90,15 +90,18 @@ class LoginController extends ctrl
 
             // CENÁRIO 5: Login inicial (apenas email + senha)
             // Verifica se usuário tem 2FA habilitado
+            $usuarioTem2FA = $this->usuarioTemDoisFatoresAtivo($usuario);
             $response = [
                 'success' => true,
                 'idusuario' => $usuario['idusuario'],
-                'token' => $usuario['token']
+                'token' => $usuario['token'],
+                'totp_configurado' => $usuarioTem2FA
             ];
 
-            if (!empty($usuario['totp_habilitado'])) {
+            if ($usuarioTem2FA) {
                 // Tem 2FA: pedir código
                 $response['requer_2fa'] = true;
+                $response['configurar_2fa'] = false;
                 $response['mensagem'] = 'Insira o código do autenticador';
             } else {
                 // Não tem 2FA: precisa configurar
@@ -122,6 +125,10 @@ class LoginController extends ctrl
     {
         $idusuario = $usuario['idusuario'];
         $email = $usuario['email'] ?? ('user' . $idusuario . '@local');
+
+        if ($this->usuarioTemDoisFatoresAtivo($usuario)) {
+            throw new Exception('2FA já configurado para este usuário');
+        }
         
         $secret = TwoFactorAuthService::generateSecret();
         $qrUrl = TwoFactorAuthService::generateQRCode($email, $secret, 'MailJZTech');
@@ -252,6 +259,29 @@ class LoginController extends ctrl
             'success' => true,
             'mensagem' => 'Código de backup verificado com sucesso'
         ];
+    }
+
+    /**
+     * Normaliza o estado do 2FA garantindo que só consideramos habilitado quando há secret persistido
+     */
+private function usuarioTemDoisFatoresAtivo(array $usuario): bool
+    {
+        $possuiSecret = !empty($usuario['totp_secret']);
+        $flagBruto = $usuario['totp_habilitado'] ?? false;
+
+        $flagNormalizado = filter_var($flagBruto, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($flagNormalizado === null) {
+            if (is_numeric($flagBruto)) {
+                $flagNormalizado = intval($flagBruto) === 1;
+            } elseif (is_string($flagBruto)) {
+                $valor = strtolower(trim($flagBruto));
+                $flagNormalizado = in_array($valor, ['true', '1', 'on', 'yes', 'sim'], true);
+            } else {
+                $flagNormalizado = (bool)$flagBruto;
+            }
+        }
+
+        return $possuiSecret && $flagNormalizado;
     }
 
     /**
