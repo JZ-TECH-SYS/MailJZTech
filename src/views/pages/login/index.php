@@ -925,7 +925,7 @@
                 const data = envelope.result || {};
 
                 if (envelope.error) {
-                    alert((data && data.mensagem) || 'Erro ao fazer login');
+                    mostrarErro((data && data.mensagem) || 'Erro ao fazer login');
                 } else {
                     // Salvar token temporário (será sobrescrito após 2FA)
                     if (data.token) {
@@ -950,7 +950,7 @@
                         const initEnvelope = await initResp.json();
                         console.debug('INICIAR-2FA envelope:', initEnvelope);
                         if (initEnvelope.error) {
-                            alert('Falha ao iniciar configuração 2FA');
+                            mostrarErro('Falha ao iniciar configuração 2FA');
                         } else {
                             mostrarModal2FA(initEnvelope.result);
                         }
@@ -960,7 +960,7 @@
                     }
                 }
             } catch (error) {
-                alert('Erro ao conectar com o servidor');
+                mostrarErro('Erro ao conectar com o servidor');
                 console.error(error);
             } finally {
                 spinner.classList.remove('show');
@@ -1012,12 +1012,12 @@
                     console.debug('✓ 2FA confirmado, redirecionando...');
                     window.location.href = '<?= $base; ?>/dashboard';
                 } else {
-                    alert(data.mensagem || 'Código inválido');
+                    mostrarErro(data.mensagem || 'Código inválido');
                     document.getElementById('codigoTOTP').value = '';
                     document.getElementById('codigoTOTP').focus();
                 }
             } catch (error) {
-                alert('Erro ao verificar código');
+                mostrarErro('Erro ao verificar código');
                 console.error(error);
             } finally {
                 btn.disabled = false;

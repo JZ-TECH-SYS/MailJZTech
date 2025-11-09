@@ -240,8 +240,7 @@ async function salvarConfiguracao() {
 }
 
 async function excluirConfiguracao(id, nome) {
-    if (!confirm(`Tem certeza que deseja excluir a configuração do banco "${nome}"?\n\nTodos os logs associados também serão removidos.`)) {
-        return;
+  if (!await confirmarAcao(`Tem certeza que deseja excluir a configuração do banco \"${nome}\"?`, `Todos os logs associados também serão removidos.`)) {       return;
     }
 
     try {
@@ -268,11 +267,11 @@ async function excluirConfiguracao(id, nome) {
 // EXECUÇÃO DE BACKUPS
 // ========================================
 async function executarBackup(id) {
-    if (!confirm('Deseja executar o backup agora?\n\nEsta operação pode demorar alguns minutos.')) {
+    if (!await confirmarAcao('Deseja executar o backup agora?', 'Esta operação pode demorar alguns minutos.')) {
         return;
     }
 
-    mostrarInfo('Executando backup... Por favor aguarde.');
+    mostrarLoad('Executando backup... Por favor aguarde.');
 
     try {
         const response = await fetchComToken(`/backup/executar/${id}`, {
@@ -282,26 +281,29 @@ async function executarBackup(id) {
         const data = await response.json();
 
         if (!data.error) {
+            fecharLoad();
             mostrarSucesso('Backup executado com sucesso!');
             carregarConfiguracoes();
             carregarEstatisticas();
         } else {
+            fecharLoad();
             mostrarErro(data.result || 'Erro ao executar backup');
         }
     } catch (error) {
         console.error('Erro ao executar backup:', error);
-        mostrarErro('Erro ao executar backup: ' + error.message);
+        fecharLoad();
+            mostrarErro('Erro ao executar backup: ' + error.message);
     }
 }
 
 async function executarBackupManual() {
     if (typeof idConfig === 'undefined') return;
     
-    if (!confirm(`Deseja executar o backup de "${nomeConfig}" agora?\n\nEsta operação pode demorar alguns minutos.`)) {
+    if (!await confirmarAcao(`Deseja executar o backup de \"${nomeConfig}\"?`, 'Esta operação pode demorar alguns minutos.')) {
         return;
     }
 
-    mostrarInfo('Executando backup... Por favor aguarde.');
+    mostrarLoad('Executando backup... Por favor aguarde.');
 
     try {
         const response = await fetchComToken(`/backup/executar/${idConfig}`, {
@@ -311,14 +313,17 @@ async function executarBackupManual() {
         const data = await response.json();
 
         if (!data.error) {
+            fecharLoad();
             mostrarSucesso('Backup executado com sucesso!');
             setTimeout(() => carregarLogs(idConfig), 2000);
         } else {
+            fecharLoad();
             mostrarErro(data.result || 'Erro ao executar backup');
         }
     } catch (error) {
         console.error('Erro ao executar backup:', error);
-        mostrarErro('Erro ao executar backup: ' + error.message);
+        fecharLoad();
+            mostrarErro('Erro ao executar backup: ' + error.message);
     }
 }
 
@@ -418,17 +423,4 @@ function escapeHtml(text) {
     return text.replace(/[&<>"']/g, m => map[m]);
 }
 
-function mostrarSucesso(mensagem) {
-    // Implementar conforme sistema de notificações do projeto
-    alert(mensagem);
-}
 
-function mostrarErro(mensagem) {
-    // Implementar conforme sistema de notificações do projeto
-    alert('Erro: ' + mensagem);
-}
-
-function mostrarInfo(mensagem) {
-    // Implementar conforme sistema de notificações do projeto
-    console.info(mensagem);
-}

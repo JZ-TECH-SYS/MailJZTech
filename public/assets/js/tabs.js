@@ -80,7 +80,7 @@ function initializeCopyButtons() {
                 
             } catch (err) {
                 console.error('Erro ao copiar:', err);
-                alert('Erro ao copiar código. Tente selecionar manualmente.');
+                mostrarErro('Erro ao copiar código. Tente selecionar manualmente.');
             }
         });
     });

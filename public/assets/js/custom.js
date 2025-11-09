@@ -19,7 +19,7 @@ function copyToClipboard(text, buttonElement = null) {
         }
     }).catch(err => {
         console.error('Erro ao copiar:', err);
-        alert('Erro ao copiar para clipboard');
+        mostrarErro('Erro ao copiar para clipboard');
     });
 }
 
@@ -27,6 +27,8 @@ function copyToClipboard(text, buttonElement = null) {
  * Confirmar exclusão
  */
 function confirmDelete(message = 'Tem certeza que deseja deletar?') {
+    // Esta função será substituída por confirmarAcao, mas mantida por enquanto
+    // para compatibilidade, se necessário. O ideal é migrar todas as chamadas.
     return confirm(message);
 }
 
@@ -144,7 +146,7 @@ async function makeRequest(url, options = {}) {
         return data;
     } catch (error) {
         console.error('Erro:', error);
-        showToast(error.message, 'danger');
+        mostrarErro(error.message);
         throw error;
     }
 }
@@ -153,18 +155,18 @@ async function makeRequest(url, options = {}) {
  * Deletar sistema
  */
 async function deletarSistema(idsistema, nomeSistema, baseUrl) {
-    if (confirmDelete(`Tem certeza que deseja deletar o sistema "${nomeSistema}"? Esta ação não pode ser desfeita.`)) {
+    if (await confirmarAcao(`Tem certeza que deseja deletar o sistema "${nomeSistema}"?`, 'Esta ação não pode ser desfeita.')) {
         try {
             const response = await makeRequest(`${baseUrl}/deletarSistema/${idsistema}`, {
                 method: 'DELETE'
             });
             
-            showToast('Sistema deletado com sucesso!', 'success');
+            mostrarSucesso('Sistema deletado com sucesso!');
             setTimeout(() => {
                 location.reload();
             }, 1500);
         } catch (error) {
-            showToast('Erro ao deletar sistema: ' + error.message, 'danger');
+            mostrarErro('Erro ao deletar sistema: ' + error.message);
         }
     }
 }
@@ -173,7 +175,7 @@ async function deletarSistema(idsistema, nomeSistema, baseUrl) {
  * Regenerar chave de API
  */
 async function regenerarChave(idsistema, baseUrl) {
-    if (confirmDelete('Tem certeza que deseja regenerar a chave de API? A chave anterior não funcionará mais.')) {
+    if (await confirmarAcao('Tem certeza que deseja regenerar a chave de API?', 'A chave anterior não funcionará mais.')) {
         try {
             const response = await makeRequest(`${baseUrl}/regenerarChaveApi/${idsistema}`, {
                 method: 'POST',
@@ -181,7 +183,7 @@ async function regenerarChave(idsistema, baseUrl) {
             });
             
             if (response.result && response.result.chave_api) {
-                showToast('Chave regenerada com sucesso!', 'success');
+                mostrarSucesso('Chave regenerada com sucesso!');
                 
                 // Mostrar modal com a nova chave
                 const modal = new bootstrap.Modal(document.getElementById('novaChaveModal'));
@@ -194,7 +196,7 @@ async function regenerarChave(idsistema, baseUrl) {
                 }, 3000);
             }
         } catch (error) {
-            showToast('Erro ao regenerar chave: ' + error.message, 'danger');
+            mostrarErro('Erro ao regenerar chave: ' + error.message);
         }
     }
 }
@@ -321,7 +323,7 @@ function throttle(func, limit) {
  * Deletar sistema
  */
 async function deletarSistema(idsistema, nomeSistema, base) {
-    if (!confirm(`Tem certeza que deseja deletar o sistema "${nomeSistema}"?\n\nEsta ação não pode ser desfeita.`)) {
+    if (!await confirmarAcao(`Tem certeza que deseja deletar o sistema "${nomeSistema}"?`, 'Esta ação não pode ser desfeita.')) {
         return;
     }
     
@@ -333,14 +335,14 @@ async function deletarSistema(idsistema, nomeSistema, base) {
         const data = await response.json();
         
         if (!data.error && data.result) {
-            alert('✅ Sistema deletado com sucesso!');
+            mostrarSucesso('Sistema deletado com sucesso!');
             window.location.reload();
         } else {
-            alert('❌ ' + (data.result || 'Erro ao deletar sistema'));
+            mostrarErro(data.result || 'Erro ao deletar sistema');
         }
     } catch (error) {
         console.error('Erro:', error);
-        alert('❌ Erro ao deletar sistema: ' + error.message);
+        mostrarErro('Erro ao deletar sistema: ' + error.message);
     }
 }
 
@@ -348,7 +350,7 @@ async function deletarSistema(idsistema, nomeSistema, base) {
  * Regenerar chave de API
  */
 async function regenerarChave(idsistema, base) {
-    if (!confirm('Tem certeza que deseja regenerar a chave de API?\n\nA chave anterior não funcionará mais!')) {
+    if (!await confirmarAcao('Tem certeza que deseja regenerar a chave de API?', 'A chave anterior não funcionará mais!')) {
         return;
     }
     
@@ -366,10 +368,10 @@ async function regenerarChave(idsistema, base) {
             const modal = new bootstrap.Modal(document.getElementById('novaChaveModal'));
             modal.show();
         } else {
-            alert('❌ ' + (data.result || 'Erro ao regenerar chave'));
+            mostrarErro(data.result || 'Erro ao regenerar chave');
         }
     } catch (error) {
         console.error('Erro:', error);
-        alert('❌ Erro ao regenerar chave: ' + error.message);
+        mostrarErro('Erro ao regenerar chave: ' + error.message);
     }
 }

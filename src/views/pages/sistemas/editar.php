@@ -160,13 +160,13 @@
             const data = await response.json();
             
             if (!data.error && data.result) {
-                alert('✅ ' + (data.result.mensagem || 'Sistema atualizado com sucesso!'));
+                mostrarSucesso(data.result.mensagem || 'Sistema atualizado com sucesso!');
                 window.location.href = '<?php echo $base; ?>/sistemas';
             } else {
-                alert('❌ ' + (data.result || 'Erro ao atualizar sistema'));
+                mostrarErro(data.result || 'Erro ao atualizar sistema');
             }
         } catch (error) {
-            alert('❌ Erro ao conectar com o servidor: ' + error.message);
+            mostrarErro('Erro ao conectar com o servidor: ' + error.message);
             console.error(error);
         } finally {
             btnAtualizar.disabled = false;
