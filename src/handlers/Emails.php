@@ -56,7 +56,7 @@ class Emails
                 $dados['cc'] ?? null,
                 $dados['bcc'] ?? null,
                 $dados['anexos'] ?? null,
-                $dados['nome_remetente'] ?? 'MailJZTech',
+                $dados['nome_remetente'] ?? $sistema['nome'] ?? 'MailJZTech',
                 $idusuario  // ✅ Passar idusuario
             );
 
