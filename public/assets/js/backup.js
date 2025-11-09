@@ -345,10 +345,22 @@ async function carregarLogs(idConfig) {
 
         if (!data.error && data.result && data.result.length > 0) {
             const logs = data.result;
-            tbody.innerHTML = logs.map(log => {
+            tbody.innerHTML = logs.map((log, index) => {
                 const statusBadge = getStatusBadge(log.status);
                 const tamanho = log.tamanho_mb ? `${log.tamanho_mb} MB` : '-';
                 const duracao = log.duracao_segundos ? `${log.duracao_segundos}s` : '-';
+
+                // Armazenar mensagem de erro em um atributo data
+                let btnErro = '';
+                if (log.status === 'error') {
+                    const erroId = `erro-${log.idbackup_execucao_log || index}`;
+                    btnErro = `<button class="btn btn-sm btn-danger" 
+                                       onclick="verErroById('${erroId}')" 
+                                       data-erro-msg="${escapeHtml(log.mensagem_erro || 'Sem detalhes')}"
+                                       id="${erroId}">
+                                    <i class="fas fa-exclamation-triangle"></i> Ver Erro
+                               </button>`;
+                }
 
                 return `
                     <tr>
@@ -362,14 +374,7 @@ async function carregarLogs(idConfig) {
                                 : '-'
                             }
                         </td>
-                        <td>
-                            ${log.status === 'error' 
-                                ? `<button class="btn btn-sm btn-danger" onclick='verErro(${JSON.stringify(log.mensagem_erro)})'>
-                                    <i class="fas fa-exclamation-triangle"></i> Ver Erro
-                                   </button>` 
-                                : ''
-                            }
-                        </td>
+                        <td>${btnErro}</td>
                     </tr>
                 `;
             }).join('');
@@ -389,10 +394,29 @@ async function carregarLogs(idConfig) {
     }
 }
 
+function verErroById(erroId) {
+    const btn = document.getElementById(erroId);
+    if (btn) {
+        const mensagemErro = btn.getAttribute('data-erro-msg');
+        verErro(mensagemErro);
+    }
+}
+
 function verErro(mensagemErro) {
+    // Tentar parsear se for JSON
+    let mensagemFormatada = mensagemErro || 'Sem detalhes do erro';
+    
+    try {
+        const obj = JSON.parse(mensagemErro);
+        mensagemFormatada = JSON.stringify(obj, null, 2);
+    } catch (e) {
+        // Não é JSON, manter como texto
+        mensagemFormatada = mensagemErro;
+    }
+    
     mostrarAlertaHTML(
         'Erro no Backup',
-        `<pre style="text-align: left; background: #f8d7da; padding: 15px; border-radius: 5px; color: #721c24; max-height: 300px; overflow-y: auto;">${escapeHtml(mensagemErro || 'Sem detalhes do erro')}</pre>`,
+        `<pre style="text-align: left; background: #f8d7da; padding: 15px; border-radius: 5px; color: #721c24; max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(mensagemFormatada)}</pre>`,
         'error'
     );
 }
