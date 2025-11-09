@@ -13,7 +13,7 @@
         <script src="<?php echo $base; ?>/assets/js/bootstrap.bundle.min.js"></script>
 
         <!-- SweetAlert2 -->
-        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script src="<?php echo $base; ?>/assets/js/sweetalert2.min.js"></script>
         <script src="<?php echo $base; ?>/assets/js/sweetalert2.js"></script>
 
         <!-- Custom JS -->
