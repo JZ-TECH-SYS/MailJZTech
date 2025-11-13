@@ -16,6 +16,7 @@ class Config
     const DB_USER = DB_USER;
     const DB_PASS = DB_PASS;
 
+
     const FRONT_URL = FRONT_URL;
 
     const EMAIL_API = EMAIL_API;

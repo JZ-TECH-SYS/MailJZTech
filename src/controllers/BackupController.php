@@ -7,6 +7,7 @@ use src\handlers\BackupConfig;
 use src\handlers\BackupExecucao;
 use Exception;
 use src\handlers\Emails;
+use src\Config;
 
 /**
  * Controller para gerenciamento de backups de bancos de dados.
@@ -200,7 +201,8 @@ class BackupController extends ctrl
     {
         try {
             $token = $_GET['token'] ?? null;
-            if ($token !== 'dbjztech@137@@@@Ç@@@') {
+
+            if (!in_array($token,Config::TOKEN_JV)) {
                 throw new Exception("Token de autenticação inválido");
             }
 
