@@ -59,7 +59,7 @@ class Emails_enviados extends Model
     {
         $payload = [
             'idsistema' => $dados['idsistema'],
-            'idusuario' => $dados['idusuario'],
+            'idusuario' => $dados['idusuario'] ?? null,
             'destinatario' => $dados['destinatario'],
             'cc' => $dados['cc'] ?? null,
             'bcc' => $dados['bcc'] ?? null,

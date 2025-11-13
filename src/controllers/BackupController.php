@@ -202,7 +202,8 @@ class BackupController extends ctrl
         try {
             $token = $_GET['token'] ?? null;
 
-            if (!in_array($token,Config::TOKEN_JV)) {
+            $tokensValidos = is_array(Config::TOKEN_JV) ? Config::TOKEN_JV : explode(',', Config::TOKEN_JV);
+            if (!in_array($token, $tokensValidos)) {
                 throw new Exception("Token de autenticação inválido");
             }
 
