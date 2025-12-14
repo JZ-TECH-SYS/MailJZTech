@@ -624,6 +624,16 @@ nav .navbar-nav .nav-link i {
     color: #e0e0e0;
 }
 
+/* Email Preview usando iframe - isola o HTML do e-mail */
+.email-iframe-preview {
+    width: 100%;
+    min-height: 350px;
+    max-height: 500px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: #ffffff;
+}
+
 .email-body-preview * {
     max-width: 100% !important;
 }
@@ -829,3 +839,98 @@ pre code {
     background: none;
     padding: 0;
 }
+
+/* ===== SWEETALERT2 DARK THEME ===== */
+.swal2-popup.swal-dark-popup {
+    background: linear-gradient(145deg, var(--bg-card) 0%, var(--bg-secondary) 100%) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--border-radius-lg) !important;
+    box-shadow: var(--shadow-lg), 0 0 30px rgba(0, 217, 255, 0.15) !important;
+}
+
+.swal2-popup .swal2-title {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+}
+
+.swal2-popup .swal2-html-container {
+    color: var(--text-secondary) !important;
+}
+
+.swal2-popup .swal2-icon.swal2-question {
+    border-color: var(--neon-cyan) !important;
+    color: var(--neon-cyan) !important;
+}
+
+.swal2-popup .swal2-icon.swal2-success {
+    border-color: var(--neon-green) !important;
+}
+
+.swal2-popup .swal2-icon.swal2-success .swal2-success-ring {
+    border-color: rgba(0, 255, 136, 0.3) !important;
+}
+
+.swal2-popup .swal2-icon.swal2-success [class^='swal2-success-line'] {
+    background-color: var(--neon-green) !important;
+}
+
+.swal2-popup .swal2-icon.swal2-error {
+    border-color: var(--neon-pink) !important;
+}
+
+.swal2-popup .swal2-icon.swal2-error [class^='swal2-x-mark-line'] {
+    background-color: var(--neon-pink) !important;
+}
+
+.swal2-popup .swal2-icon.swal2-warning {
+    border-color: var(--neon-yellow) !important;
+    color: var(--neon-yellow) !important;
+}
+
+.swal2-popup .swal2-icon.swal2-info {
+    border-color: var(--neon-blue) !important;
+    color: var(--neon-blue) !important;
+}
+
+/* Botões do SweetAlert */
+.swal2-popup .swal2-confirm {
+    background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-blue) 100%) !important;
+    border: none !important;
+    color: var(--text-dark) !important;
+    font-weight: 600 !important;
+    padding: 0.6rem 1.5rem !important;
+    border-radius: var(--border-radius) !important;
+    transition: var(--transition-fast) !important;
+}
+
+.swal2-popup .swal2-confirm:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.4) !important;
+}
+
+.swal2-popup .swal2-cancel {
+    background: var(--bg-hover) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-secondary) !important;
+    font-weight: 500 !important;
+    padding: 0.6rem 1.5rem !important;
+    border-radius: var(--border-radius) !important;
+    transition: var(--transition-fast) !important;
+}
+
+.swal2-popup .swal2-cancel:hover {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Toast do SweetAlert */
+.swal2-popup.swal2-toast {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+.swal2-popup.swal2-toast .swal2-title {
+    color: var(--text-primary) !important;
+}
+

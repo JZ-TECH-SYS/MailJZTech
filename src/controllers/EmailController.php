@@ -19,6 +19,15 @@ class EmailController extends ctrl
     {
         $this->render('emails');
     }
+    
+    /**
+     * Página de diagnóstico de entrega
+     * GET /emails/diagnostico
+     */
+    public function paginaDiagnostico()
+    {
+        $this->render('emails/diagnostico');
+    }
 
     /**
      * Envia um e-mail
@@ -415,6 +424,37 @@ class EmailController extends ctrl
             
         } catch (\Exception $e) {
             ctrl::log("Erro em validarHtml: " . $e->getMessage());
+            ctrl::rejectResponse($e);
+        }
+    }
+    
+    /**
+     * Diagnóstico de entrega de e-mail
+     * GET /api/emails/diagnostico?destinatario=email@exemplo.com
+     * 
+     * Verifica SPF, DKIM, MX, conexão SMTP, etc.
+     *
+     * @return void
+     */
+    public function diagnostico()
+    {
+        try {
+            $destinatario = $_GET['destinatario'] ?? null;
+            
+            if (empty($destinatario)) {
+                throw new \Exception('Parâmetro destinatario é obrigatório');
+            }
+            
+            if (!filter_var($destinatario, FILTER_VALIDATE_EMAIL)) {
+                throw new \Exception('E-mail inválido');
+            }
+            
+            $resultado = \src\handlers\service\EmailService::diagnosticarEntrega($destinatario);
+            
+            ctrl::response($resultado, 200);
+            
+        } catch (\Exception $e) {
+            ctrl::log("Erro em diagnostico: " . $e->getMessage());
             ctrl::rejectResponse($e);
         }
     }

@@ -245,6 +245,32 @@ class EmailService
                 $mail->AltBody = self::htmlToPlainText($htmlBody);
             }
             
+            // ========================================
+            // HEADERS IMPORTANTES PARA ENTREGA
+            // ========================================
+            
+            // Message-ID único (melhora rastreabilidade)
+            $messageId = sprintf(
+                "<%s.%s@%s>",
+                time(),
+                uniqid(),
+                parse_url(Config::FRONT_URL, PHP_URL_HOST) ?: 'jztech.com.br'
+            );
+            $mail->MessageID = $messageId;
+            
+            // Header de prioridade (normal)
+            $mail->Priority = 3; // 1 = Alta, 3 = Normal, 5 = Baixa
+            
+            // Headers customizados para melhor entrega
+            $mail->addCustomHeader('X-Mailer', 'MailJZTech-API/1.0');
+            $mail->addCustomHeader('X-Auto-Response-Suppress', 'OOF, AutoReply');
+            $mail->addCustomHeader('List-Unsubscribe', '<mailto:' . Config::EMAIL_API . '?subject=unsubscribe>');
+            
+            // Evitar ser marcado como bulk/marketing
+            $mail->addCustomHeader('Precedence', 'bulk');
+            
+            $debugLog[] = "Message-ID: {$messageId}";
+            
             // Calcular tamanho total aproximado
             $totalSize = strlen($htmlBody) + strlen($mail->AltBody ?? '');
             if ($anexos) {
@@ -598,5 +624,126 @@ class EmailService
             'errors' => $errors,
             'service' => 'phpmailer'
         ];
+    }
+    
+    /**
+     * Diagnóstico completo de entrega de e-mail
+     * Verifica configurações, DNS, SPF, etc.
+     *
+     * @param string $destinatario E-mail de destino para testar
+     * @return array Relatório de diagnóstico
+     */
+    public static function diagnosticarEntrega(string $destinatario): array
+    {
+        $diagnostico = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'destinatario' => $destinatario,
+            'problemas' => [],
+            'avisos' => [],
+            'ok' => [],
+            'recomendacoes' => []
+        ];
+        
+        // 1. Verificar configurações básicas
+        $configCheck = self::validateEmailConfiguration();
+        if (!$configCheck['valid']) {
+            $diagnostico['problemas'][] = 'Configuração SMTP incompleta: ' . implode(', ', $configCheck['errors']);
+        } else {
+            $diagnostico['ok'][] = 'Configuração SMTP completa';
+        }
+        
+        // 2. Verificar domínio do remetente
+        $remetente = Config::EMAIL_API;
+        $dominioRemetente = substr(strrchr($remetente, "@"), 1);
+        
+        // Verificar MX do remetente
+        $mxRemetente = @dns_get_record($dominioRemetente, DNS_MX);
+        if (empty($mxRemetente)) {
+            $diagnostico['avisos'][] = "Domínio remetente ({$dominioRemetente}) sem registro MX";
+        } else {
+            $diagnostico['ok'][] = "Domínio remetente tem " . count($mxRemetente) . " registro(s) MX";
+        }
+        
+        // Verificar SPF do remetente
+        $txtRecords = @dns_get_record($dominioRemetente, DNS_TXT);
+        $temSpf = false;
+        if ($txtRecords) {
+            foreach ($txtRecords as $txt) {
+                if (stripos($txt['txt'] ?? '', 'v=spf1') !== false) {
+                    $temSpf = true;
+                    $diagnostico['ok'][] = "SPF configurado: " . substr($txt['txt'], 0, 80) . '...';
+                    break;
+                }
+            }
+        }
+        if (!$temSpf) {
+            $diagnostico['problemas'][] = "Domínio remetente sem SPF - e-mails podem ir para spam";
+            $diagnostico['recomendacoes'][] = "Configure um registro SPF no DNS do domínio {$dominioRemetente}";
+        }
+        
+        // Verificar DKIM (básico - procura por registro)
+        $dkimRecord = @dns_get_record("default._domainkey.{$dominioRemetente}", DNS_TXT);
+        if (empty($dkimRecord)) {
+            $diagnostico['avisos'][] = "DKIM não detectado (pode estar com seletor diferente)";
+            $diagnostico['recomendacoes'][] = "Configure DKIM no servidor de e-mail para melhor entrega";
+        } else {
+            $diagnostico['ok'][] = "DKIM detectado";
+        }
+        
+        // 3. Verificar domínio do destinatário
+        $dominioDestinatario = substr(strrchr($destinatario, "@"), 1);
+        
+        // Verificar MX do destinatário
+        $mxDestinatario = @dns_get_record($dominioDestinatario, DNS_MX);
+        if (empty($mxDestinatario)) {
+            $diagnostico['problemas'][] = "Domínio destinatário ({$dominioDestinatario}) sem registro MX - não pode receber e-mails!";
+        } else {
+            $diagnostico['ok'][] = "Domínio destinatário tem " . count($mxDestinatario) . " servidor(es) de e-mail";
+            $diagnostico['mx_destinatario'] = array_map(fn($mx) => $mx['target'] ?? 'N/A', $mxDestinatario);
+        }
+        
+        // 4. Verificar se é Gmail/Outlook (regras mais rígidas)
+        $isGmail = stripos($dominioDestinatario, 'gmail') !== false || stripos($dominioDestinatario, 'googlemail') !== false;
+        $isOutlook = stripos($dominioDestinatario, 'outlook') !== false || stripos($dominioDestinatario, 'hotmail') !== false || stripos($dominioDestinatario, 'live.') !== false;
+        
+        if ($isGmail || $isOutlook) {
+            $diagnostico['avisos'][] = "Destinatário é " . ($isGmail ? 'Gmail' : 'Outlook') . " - filtros anti-spam rigorosos";
+            $diagnostico['recomendacoes'][] = "Para " . ($isGmail ? 'Gmail' : 'Outlook') . ": certifique-se de ter SPF, DKIM e DMARC configurados";
+        }
+        
+        // 5. Verificar conexão SMTP
+        try {
+            $mail = new PHPMailer(true);
+            $mail->SMTPDebug = 0;
+            $mail->isSMTP();
+            $mail->Host = Config::SMTP_HOST;
+            $mail->SMTPAuth = true;
+            $mail->Username = Config::EMAIL_API;
+            $mail->Password = Config::SENHA_EMAIL_API;
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            $mail->Port = Config::SMTP_PORT;
+            $mail->Timeout = 10;
+            
+            // Tenta conectar
+            if ($mail->smtpConnect()) {
+                $diagnostico['ok'][] = "Conexão SMTP estabelecida com sucesso";
+                $mail->smtpClose();
+            } else {
+                $diagnostico['problemas'][] = "Não foi possível conectar ao servidor SMTP";
+            }
+        } catch (\Exception $e) {
+            $diagnostico['problemas'][] = "Erro ao conectar SMTP: " . $e->getMessage();
+        }
+        
+        // 6. Resumo
+        $diagnostico['resumo'] = [
+            'total_problemas' => count($diagnostico['problemas']),
+            'total_avisos' => count($diagnostico['avisos']),
+            'total_ok' => count($diagnostico['ok']),
+            'pode_enviar' => count($diagnostico['problemas']) === 0,
+            'entrega_garantida' => count($diagnostico['problemas']) === 0 && count($diagnostico['avisos']) === 0
+        ];
+        
+        return $diagnostico;
     }
 }

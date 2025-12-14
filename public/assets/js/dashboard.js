@@ -129,6 +129,9 @@ function atualizarTabelaEmails(emails) {
  * Retorna badge HTML baseado no status
  */
 function getBadgeStatus(status) {
+    // Normaliza o status (lowercase e trim)
+    const statusNormalizado = (status || '').toLowerCase().trim();
+    
     const badges = {
         'enviado': '<span class="badge bg-success"><i class="fas fa-check"></i> Enviado</span>',
         'aceito': '<span class="badge bg-info"><i class="fas fa-check-circle"></i> Aceito</span>',
@@ -139,7 +142,7 @@ function getBadgeStatus(status) {
         'bounce': '<span class="badge bg-secondary"><i class="fas fa-undo"></i> Bounce</span>',
         'erro': '<span class="badge bg-danger"><i class="fas fa-times-circle"></i> Erro</span>'
     };
-    return badges[status] || '<span class="badge bg-secondary">Desconhecido</span>';
+    return badges[statusNormalizado] || `<span class="badge bg-secondary">Desconhecido (${escapeHtml(status)})</span>`;
 }
 
 /**

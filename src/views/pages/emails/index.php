@@ -400,12 +400,20 @@ async function verDetalhes(idemail) {
         if (!data.error && data.result) {
             const email = data.result;
             
-            // Processar corpo do e-mail
-            let corpoEmail = '<em class="text-muted">Sem conteúdo</em>';
+            // Processar corpo do e-mail - usando iframe para isolar o HTML
+            let corpoEmailHtml = '';
+            let usarIframe = false;
+            
             if (email.corpo_html && email.corpo_html.trim() !== '') {
-                corpoEmail = email.corpo_html;
+                usarIframe = true;
+                // Escapar aspas e barras invertidas para o srcdoc
+                corpoEmailHtml = email.corpo_html
+                    .replace(/\\/g, '\\\\')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
             } else if (email.corpo_texto && email.corpo_texto.trim() !== '') {
-                corpoEmail = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; color: #d4d4d4;">${escapeHtml(email.corpo_texto)}</pre>`;
+                corpoEmailHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: monospace; color: #333; margin: 0;">${escapeHtml(email.corpo_texto)}</pre>`;
+                usarIframe = true;
             }
             
             // Calcular tamanho se não vier do backend
@@ -520,9 +528,18 @@ async function verDetalhes(idemail) {
                     <!-- Corpo do E-mail -->
                     <div class="col-12">
                         <div class="detail-label mb-2"><i class="fas fa-envelope-open-text text-success"></i> Corpo do E-mail</div>
+                        ${usarIframe && corpoEmailHtml ? `
+                        <iframe 
+                            class="email-iframe-preview" 
+                            srcdoc="${corpoEmailHtml}"
+                            sandbox="allow-same-origin"
+                            title="Preview do E-mail"
+                        ></iframe>
+                        ` : `
                         <div class="email-body-preview">
-                            ${corpoEmail}
+                            <em class="text-muted">Sem conteúdo</em>
                         </div>
+                        `}
                     </div>
                     
                     ${email.mensagem_erro ? `
@@ -565,8 +582,26 @@ let emailAtualModal = null;
 
 // Reenviar e-mail
 async function reenviarEmail(idemail) {
-    // Confirmação antes de reenviar
-    if (!confirm('Deseja reenviar este e-mail?')) {
+    // Confirmação bonita com SweetAlert2
+    const confirmResult = await Swal.fire({
+        title: 'Reenviar E-mail?',
+        text: 'Deseja reenviar este e-mail para o destinatário?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#00d9ff',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-paper-plane"></i> Sim, reenviar!',
+        cancelButtonText: '<i class="fas fa-times"></i> Cancelar',
+        background: '#0d1b2a',
+        color: '#fff',
+        customClass: {
+            popup: 'swal-dark-popup',
+            confirmButton: 'btn btn-primary',
+            cancelButton: 'btn btn-secondary'
+        }
+    });
+    
+    if (!confirmResult.isConfirmed) {
         return;
     }
     
@@ -577,6 +612,16 @@ async function reenviarEmail(idemail) {
             btnOriginal.disabled = true;
             btnOriginal.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         }
+        
+        // Loading toast enquanto processa
+        Swal.fire({
+            title: 'Reenviando...',
+            html: '<i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Aguarde enquanto o e-mail é reenviado',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            background: '#0d1b2a',
+            color: '#fff'
+        });
         
         // Buscar dados do e-mail original
         const responseDetalhe = await fetchComToken(`/detalheEmail/${idemail}`);
@@ -693,6 +738,9 @@ function limparFiltros() {
 
 // Helpers
 function getStatusBadge(status) {
+    // Normaliza o status (lowercase e trim)
+    const statusNormalizado = (status || '').toLowerCase().trim();
+    
     const badges = {
         'enviado': '<span class="badge bg-success"><i class="fas fa-check"></i> Enviado</span>',
         'aceito': '<span class="badge bg-info"><i class="fas fa-check-circle"></i> Aceito</span>',
@@ -703,7 +751,7 @@ function getStatusBadge(status) {
         'bounce': '<span class="badge bg-secondary"><i class="fas fa-undo"></i> Bounce</span>',
         'erro': '<span class="badge bg-danger"><i class="fas fa-times"></i> Erro</span>'
     };
-    return badges[status] || '<span class="badge bg-secondary">Desconhecido</span>';
+    return badges[statusNormalizado] || `<span class="badge bg-secondary">Desconhecido (${status})</span>`;
 }
 
 function formatarData(dataString) {

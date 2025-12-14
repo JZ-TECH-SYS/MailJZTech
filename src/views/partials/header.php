@@ -50,10 +50,22 @@
                             <i class="fas fa-cogs"></i> Sistemas
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], 'emails') !== false ? 'active' : ''; ?>" href="<?php echo $base; ?>/emails">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle <?php echo strpos($_SERVER['REQUEST_URI'], 'emails') !== false ? 'active' : ''; ?>" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-envelope"></i> E-mails
                         </a>
+                        <ul class="dropdown-menu dropdown-menu-dark">
+                            <li>
+                                <a class="dropdown-item" href="<?php echo $base; ?>/emails">
+                                    <i class="fas fa-list"></i> Histórico
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="<?php echo $base; ?>/emails/diagnostico">
+                                    <i class="fas fa-stethoscope"></i> Diagnóstico
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link <?php echo (strpos($_SERVER['REQUEST_URI'], 'logs') !== false && strpos($_SERVER['REQUEST_URI'], 'backup') === false) ? 'active' : ''; ?>" href="<?php echo $base; ?>/logs">

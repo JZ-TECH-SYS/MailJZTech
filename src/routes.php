@@ -67,6 +67,7 @@ $router->post('/regenerarChaveApi/{idsistema}', 'SistemasController@regenerarCha
 // E-MAILS (Views - GET)
 // ==========================================
 $router->get('/emails', 'EmailController@index', true);
+$router->get('/emails/diagnostico', 'EmailController@paginaDiagnostico', true);
 
 // ==========================================
 // E-MAILS (API - POST/GET)
@@ -82,6 +83,7 @@ $router->get('/validarConfigEmail', 'EmailController@validarConfigEmail');
 $router->post('/api/emails/webhook', 'EmailController@webhook');                 // Webhook público para bounces
 $router->get('/api/emails/eventos', 'EmailController@obterEventos', true);       // Histórico de eventos
 $router->post('/api/emails/validar-html', 'EmailController@validarHtml', true);  // Validar HTML antes do envio
+$router->get('/api/emails/diagnostico', 'EmailController@diagnostico', true);    // Diagnóstico de entrega
 
 // ==========================================
 // BACKUPS (Views - GET)
