@@ -232,6 +232,25 @@ class Emails
             }
 
             // Sempre criar registro com o status real
+            // Salvar payload original para debug (sem o corpo HTML/texto para economizar espaço)
+            $payloadParaSalvar = [
+                'idsistema' => $dados['idsistema'] ?? $idsistema,
+                'destinatario' => $dados['destinatario'] ?? null,
+                'assunto' => $dados['assunto'] ?? null,
+                'cc' => $dados['cc'] ?? null,
+                'bcc' => $dados['bcc'] ?? null,
+                'nome_remetente' => $dados['nome_remetente'] ?? null,
+                'tem_corpo_html' => !empty($dados['corpo_html']),
+                'tem_corpo_texto' => !empty($dados['corpo_texto']),
+                'tamanho_html' => strlen($dados['corpo_html'] ?? ''),
+                'tamanho_texto' => strlen($dados['corpo_texto'] ?? ''),
+                'tem_anexos' => !empty($dados['anexos']),
+                'qtd_anexos' => is_array($dados['anexos'] ?? null) ? count($dados['anexos']) : 0,
+                'timestamp_recebido' => date('Y-m-d H:i:s'),
+                'ip_origem' => $_SERVER['REMOTE_ADDR'] ?? null,
+                'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null
+            ];
+            
             $idEmail = Emails_enviados::criar([
                 'idsistema' => $idsistema,
                 'idusuario' => $idusuarioLog,
@@ -247,7 +266,8 @@ class Emails
                 'smtp_response' => $resultado['smtp_response'] ?? null,
                 'tamanho_bytes' => $resultado['size_bytes'] ?? null,
                 'mensagem_erro' => $mensagemErro,
-                'data_envio' => $resultado['success'] ? date('Y-m-d H:i:s') : null
+                'data_envio' => $resultado['success'] ? date('Y-m-d H:i:s') : null,
+                'payload_original' => json_encode($payloadParaSalvar, JSON_UNESCAPED_UNICODE)
             ]);
 
             // Log detalhado do resultado

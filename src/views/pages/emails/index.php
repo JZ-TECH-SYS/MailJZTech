@@ -550,6 +550,31 @@ async function verDetalhes(idemail) {
                         </div>
                     </div>
                     ` : ''}
+                    
+                    ${email.payload_original ? `
+                    <div class="col-12 mt-3">
+                        <div class="detail-card">
+                            <div class="detail-label mb-2">
+                                <i class="fas fa-code text-info"></i> Payload Original (Debug)
+                                <button class="btn btn-sm btn-outline-info ms-2" onclick="togglePayload()">
+                                    <i class="fas fa-eye" id="payloadToggleIcon"></i>
+                                </button>
+                            </div>
+                            <div id="payloadContent" style="display: none;">
+                                <pre class="mb-0" style="background: #0d1b2a; color: #00d9ff; padding: 1rem; border-radius: 0.5rem; font-size: 0.85rem; max-height: 300px; overflow: auto;">${(() => {
+                                    try {
+                                        const payload = typeof email.payload_original === 'string' 
+                                            ? JSON.parse(email.payload_original) 
+                                            : email.payload_original;
+                                        return escapeHtml(JSON.stringify(payload, null, 2));
+                                    } catch(e) {
+                                        return escapeHtml(email.payload_original);
+                                    }
+                                })()}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
             `;
             
@@ -719,6 +744,22 @@ function toastErro(mensagem) {
         });
     } else {
         alert(mensagem);
+    }
+}
+
+// Toggle do payload original
+function togglePayload() {
+    const content = document.getElementById('payloadContent');
+    const icon = document.getElementById('payloadToggleIcon');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        content.style.display = 'none';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
     }
 }
 

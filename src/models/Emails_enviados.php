@@ -72,7 +72,8 @@ class Emails_enviados extends Model
             'smtp_response' => $dados['smtp_response'] ?? null,
             'tamanho_bytes' => $dados['tamanho_bytes'] ?? null,
             'mensagem_erro' => $dados['mensagem_erro'] ?? null,
-            'tentativas' => $dados['tentativas'] ?? 1
+            'tentativas' => $dados['tentativas'] ?? 1,
+            'payload_original' => $dados['payload_original'] ?? null
         ];
 
         if (!empty($dados['data_envio'])) {

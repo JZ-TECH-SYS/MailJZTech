@@ -303,7 +303,9 @@ function mostrarErro(mensagem) {
     toastErro(mensagem);
 }
 
-// Modal detalhes (reuso do existente em view dashboard)
+// Modal detalhes (espelho do modal da tela de e-mails)
+let emailAtualModalDash = null;
+
 async function abrirModalDetalhes(idemail) {
     const modalEl = document.getElementById('detalhesModal');
     if (!modalEl) return;
@@ -319,155 +321,312 @@ async function abrirModalDetalhes(idemail) {
             toastErro('Erro ao carregar detalhes do e-mail');
             return;
         }
-        const e = data.result;
+        const email = data.result;
+        emailAtualModalDash = email.idemail;
         
         // Processar corpo do e-mail - usando iframe para isolar o HTML
         let corpoEmailHtml = '';
         let usarIframe = false;
         
-        if (e.corpo_html && e.corpo_html.trim() !== '') {
+        if (email.corpo_html && email.corpo_html.trim() !== '') {
             usarIframe = true;
-            // Escapar aspas e barras invertidas para o srcdoc
-            corpoEmailHtml = e.corpo_html
+            corpoEmailHtml = email.corpo_html
                 .replace(/\\/g, '\\\\')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
-        } else if (e.corpo_texto && e.corpo_texto.trim() !== '') {
-            corpoEmailHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: monospace; color: #333; margin: 0;">${escapeHtml(e.corpo_texto)}</pre>`;
+        } else if (email.corpo_texto && email.corpo_texto.trim() !== '') {
+            corpoEmailHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: monospace; color: #333; margin: 0;">${escapeHtml(email.corpo_texto)}</pre>`;
             usarIframe = true;
         }
         
-        // Formatar tamanho
-        function formatarBytes(bytes) {
-            if (!bytes || bytes === 0) return 'N/A';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        // Calcular tamanho se não vier do backend
+        let tamanhoExibir = email.tamanho_bytes;
+        if (!tamanhoExibir && email.corpo_html) {
+            tamanhoExibir = new Blob([email.corpo_html]).size;
         }
         
         content.innerHTML = `
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <div class="card border-0 border-start border-danger border-4">
-                        <div class="card-body">
-                            <p class="card-text text-muted small mb-2"><i class="fas fa-hashtag text-danger"></i> ID</p>
-                            <h6 class="text-dark mb-0"><code class="text-danger">#${e.idemail}</code></h6>
-                        </div>
+            <div class="row g-3">
+                <!-- ID e Status -->
+                <div class="col-md-6">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-hashtag text-info"></i> ID</div>
+                        <div class="detail-value">#${email.idemail}</div>
                     </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <div class="card border-0 border-start border-info border-4">
-                        <div class="card-body">
-                            <p class="card-text text-muted small mb-2"><i class="fas fa-info-circle text-info"></i> Status</p>
-                            ${getBadgeStatus(e.status)}
-                        </div>
+                <div class="col-md-6">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-info-circle text-info"></i> Status</div>
+                        <div class="detail-value">${getBadgeStatus(email.status)}</div>
                     </div>
                 </div>
-            </div>
-
-            <div class="card border-0 border-start border-danger border-4 mb-3" style="background: rgba(220, 53, 69, 0.05);">
-                <div class="card-body">
-                    <p class="card-text text-muted small mb-2"><i class="fas fa-user text-danger"></i> Destinatário</p>
-                    <p class="mb-0" style="font-size: 1rem; color: #dc3545;">${escapeHtml(e.destinatario || '')}</p>
-                </div>
-            </div>
-
-            <div class="card border-0 border-start border-primary border-4 mb-3" style="background: rgba(0, 123, 255, 0.05);">
-                <div class="card-body">
-                    <p class="card-text text-muted small mb-2"><i class="fas fa-heading text-primary"></i> Assunto</p>
-                    <p class="mb-0" style="font-size: 1rem; color: #007bff;">${escapeHtml(e.assunto || '')}</p>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <div class="card border-0 border-start border-warning border-4" style="background: rgba(255, 193, 7, 0.15);">
-                        <div class="card-body">
-                            <p class="card-text text-muted small mb-2"><i class="fas fa-paper-plane text-warning"></i> Data Envio</p>
-                            <p class="mb-0" style="font-size: 1rem; color: #ffc107; font-weight: 500;">${formatarData(e.data_envio || e.data_criacao)}</p>
-                        </div>
+                
+                <!-- Sistema e Data Criação -->
+                <div class="col-md-6">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-cogs text-warning"></i> Sistema</div>
+                        <div class="detail-value">${email.idsistema || 'N/A'}</div>
                     </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <div class="card border-0 border-start border-secondary border-4">
-                        <div class="card-body">
-                            <p class="card-text text-muted small mb-2"><i class="fas fa-server text-secondary"></i> Código SMTP</p>
-                            <p class="mb-0"><code>${e.smtp_code || 'N/A'}</code></p>
-                        </div>
+                <div class="col-md-6">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-calendar-plus text-success"></i> Data de Criação</div>
+                        <div class="detail-value">${formatarData(email.data_criacao)}</div>
                     </div>
                 </div>
-            </div>
-
-            ${e.smtp_response ? `
-                <div class="card border-0 border-start border-secondary border-4 mb-3">
-                    <div class="card-body">
-                        <p class="card-text text-muted small mb-2"><i class="fas fa-reply text-secondary"></i> Resposta SMTP</p>
-                        <code class="text-muted">${escapeHtml(e.smtp_response)}</code>
+                
+                <!-- Destinatário -->
+                <div class="col-12">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-user text-danger"></i> Destinatário</div>
+                        <div class="detail-value">${escapeHtml(email.destinatario)}</div>
                     </div>
                 </div>
-            ` : ''}
-
-            <div class="row">
-                ${e.tamanho_bytes ? `
-                    <div class="col-md-6 mb-3">
-                        <div class="card border-0 border-start border-info border-4">
-                            <div class="card-body">
-                                <p class="card-text text-muted small mb-2"><i class="fas fa-weight text-info"></i> Tamanho</p>
-                                <p class="mb-0">${formatarBytes(e.tamanho_bytes)}</p>
-                            </div>
-                        </div>
+                
+                ${email.cc ? `
+                <div class="col-12">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-users text-secondary"></i> CC</div>
+                        <div class="detail-value">${escapeHtml(email.cc)}</div>
                     </div>
+                </div>
                 ` : ''}
-                ${e.tentativas > 1 ? `
-                    <div class="col-md-6 mb-3">
-                        <div class="card border-0 border-start border-warning border-4">
-                            <div class="card-body">
-                                <p class="card-text text-muted small mb-2"><i class="fas fa-redo text-warning"></i> Tentativas</p>
-                                <p class="mb-0">${e.tentativas}</p>
-                            </div>
-                        </div>
+                
+                ${email.bcc ? `
+                <div class="col-12">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-user-secret text-secondary"></i> BCC</div>
+                        <div class="detail-value">${escapeHtml(email.bcc)}</div>
                     </div>
-                ` : ''}
-            </div>
-
-            <div class="card border-0 border-top border-success border-4 mb-3">
-                <div class="card-header bg-white border-0 pt-3">
-                    <h6 class="mb-0"><i class="fas fa-envelope-open-text text-success"></i> Corpo do E-mail</h6>
                 </div>
-                <div class="card-body pt-0">
+                ` : ''}
+                
+                <!-- Assunto -->
+                <div class="col-12">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-heading text-primary"></i> Assunto</div>
+                        <div class="detail-value">${escapeHtml(email.assunto)}</div>
+                    </div>
+                </div>
+                
+                <!-- Data Envio e SMTP -->
+                <div class="col-md-6">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-paper-plane text-success"></i> Data de Envio</div>
+                        <div class="detail-value">${formatarData(email.data_envio)}</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-server text-secondary"></i> Código SMTP</div>
+                        <div class="detail-value"><code>${email.smtp_code || 'N/A'}</code></div>
+                    </div>
+                </div>
+                
+                ${email.smtp_response ? `
+                <div class="col-12">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-reply text-secondary"></i> Resposta SMTP</div>
+                        <div class="detail-value"><code>${escapeHtml(email.smtp_response)}</code></div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <!-- Tamanho e Tentativas -->
+                <div class="col-md-6">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-weight text-info"></i> Tamanho</div>
+                        <div class="detail-value">${tamanhoExibir ? formatarBytes(tamanhoExibir) : 'N/A'}</div>
+                    </div>
+                </div>
+                ${email.tentativas ? `
+                <div class="col-md-6">
+                    <div class="detail-card">
+                        <div class="detail-label"><i class="fas fa-redo text-warning"></i> Tentativas</div>
+                        <div class="detail-value">${email.tentativas}</div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <!-- Corpo do E-mail -->
+                <div class="col-12">
+                    <div class="detail-label mb-2"><i class="fas fa-envelope-open-text text-success"></i> Corpo do E-mail</div>
                     ${usarIframe && corpoEmailHtml ? `
-                        <iframe 
-                            class="email-iframe-preview" 
-                            srcdoc="${corpoEmailHtml}"
-                            sandbox="allow-same-origin"
-                            title="Preview do E-mail"
-                            style="width: 100%; min-height: 350px; max-height: 500px; border: 1px solid #dee2e6; border-radius: 0.375rem; background: #ffffff;"
-                        ></iframe>
+                    <iframe 
+                        class="email-iframe-preview" 
+                        srcdoc="${corpoEmailHtml}"
+                        sandbox="allow-same-origin"
+                        title="Preview do E-mail"
+                    ></iframe>
                     ` : `
-                        <div style="background:#1e1e1e; border:1px solid #404040; border-radius:0.375rem; padding:1rem; max-height:350px; overflow-y:auto;">
-                            <em class="text-muted">Sem conteúdo</em>
-                        </div>
+                    <div class="email-body-preview">
+                        <em class="text-muted">Sem conteúdo</em>
+                    </div>
                     `}
                 </div>
-            </div>
-
-            ${e.mensagem_erro ? `
-                <div class="card border-0 border-start border-danger border-4">
-                    <div class="card-header bg-danger bg-opacity-10 border-0">
-                        <h6 class="mb-0 text-danger"><i class="fas fa-exclamation-circle"></i> Erro ao Enviar</h6>
-                    </div>
-                    <div class="card-body pt-2">
-                        <p class="mb-0" style="color: #dc3545;"><code>${escapeHtml(e.mensagem_erro)}</code></p>
+                
+                ${email.mensagem_erro ? `
+                <div class="col-12">
+                    <div class="alert alert-danger mb-0">
+                        <strong><i class="fas fa-exclamation-triangle"></i> Erro de Envio:</strong><br>
+                        <code>${escapeHtml(email.mensagem_erro)}</code>
                     </div>
                 </div>
-            ` : ''}
+                ` : ''}
+                
+                ${email.payload_original ? `
+                <div class="col-12 mt-3">
+                    <div class="detail-card">
+                        <div class="detail-label mb-2">
+                            <i class="fas fa-code text-info"></i> Payload Original (Debug)
+                            <button class="btn btn-sm btn-outline-info ms-2" onclick="togglePayloadDash()">
+                                <i class="fas fa-eye" id="payloadToggleIconDash"></i>
+                            </button>
+                        </div>
+                        <div id="payloadContentDash" style="display: none;">
+                            <pre class="mb-0" style="background: #0d1b2a; color: #00d9ff; padding: 1rem; border-radius: 0.5rem; font-size: 0.85rem; max-height: 300px; overflow: auto;">${(() => {
+                                try {
+                                    const payload = typeof email.payload_original === 'string' 
+                                        ? JSON.parse(email.payload_original) 
+                                        : email.payload_original;
+                                    return escapeHtml(JSON.stringify(payload, null, 2));
+                                } catch(e) {
+                                    return escapeHtml(email.payload_original);
+                                }
+                            })()}</pre>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+            
+            <!-- Botão Reenviar -->
+            <div class="mt-3 text-end">
+                <button class="btn btn-primary" onclick="reenviarEmailDash(${email.idemail})">
+                    <i class="fas fa-paper-plane"></i> Reenviar E-mail
+                </button>
+            </div>
         `;
     } catch (err) {
         console.error('Erro ao carregar detalhes:', err);
         content.innerHTML = `<div class='alert alert-danger'><i class="fas fa-exclamation-circle"></i> ${escapeHtml(err.message)}</div>`;
         toastErro('Erro ao carregar detalhes: ' + err.message);
     }
+}
+
+// Toggle do payload original (Dashboard)
+function togglePayloadDash() {
+    const content = document.getElementById('payloadContentDash');
+    const icon = document.getElementById('payloadToggleIconDash');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        content.style.display = 'none';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Reenviar e-mail (Dashboard)
+async function reenviarEmailDash(idemail) {
+    // Confirmação com SweetAlert2
+    const confirmResult = await Swal.fire({
+        title: 'Reenviar E-mail?',
+        text: 'Deseja reenviar este e-mail para o destinatário?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#00d9ff',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-paper-plane"></i> Sim, reenviar!',
+        cancelButtonText: '<i class="fas fa-times"></i> Cancelar',
+        background: '#0d1b2a',
+        color: '#fff'
+    });
+    
+    if (!confirmResult.isConfirmed) {
+        return;
+    }
+    
+    try {
+        // Loading
+        Swal.fire({
+            title: 'Reenviando...',
+            html: '<i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Aguarde enquanto o e-mail é reenviado',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            background: '#0d1b2a',
+            color: '#fff'
+        });
+        
+        // Buscar dados do e-mail original
+        const responseDetalhe = await fetchComToken(`/detalheEmail/${idemail}`);
+        const dataDetalhe = await responseDetalhe.json();
+        
+        if (dataDetalhe.error || !dataDetalhe.result) {
+            throw new Error(dataDetalhe.result?.mensagem || 'Erro ao carregar dados do e-mail');
+        }
+        
+        const emailOriginal = dataDetalhe.result;
+        
+        // Preparar payload para reenvio
+        const payload = {
+            idsistema: emailOriginal.idsistema,
+            destinatario: emailOriginal.destinatario,
+            assunto: emailOriginal.assunto,
+            corpo_html: emailOriginal.corpo_html || null,
+            corpo_texto: emailOriginal.corpo_texto || null,
+            cc: emailOriginal.cc || null,
+            bcc: emailOriginal.bcc || null,
+            reenvio_de: idemail
+        };
+        
+        // Enviar
+        const response = await fetchComToken('/sendEmail', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (!data.error && data.result?.sucesso) {
+            Swal.fire({
+                icon: 'success',
+                title: 'E-mail reenviado!',
+                text: `Novo ID: #${data.result.idemail}`,
+                background: '#0d1b2a',
+                color: '#fff',
+                confirmButtonColor: '#00d9ff'
+            });
+            // Recarregar dashboard
+            carregarDadosDashboard();
+        } else {
+            throw new Error(data.result?.mensagem || 'Erro ao reenviar');
+        }
+        
+    } catch (error) {
+        console.error('Erro ao reenviar:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro ao reenviar',
+            text: error.message,
+            background: '#0d1b2a',
+            color: '#fff',
+            confirmButtonColor: '#00d9ff'
+        });
+    }
+}
+
+// Formatar bytes
+function formatarBytes(bytes) {
+    if (!bytes || bytes === 0) return 'N/A';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 /**
