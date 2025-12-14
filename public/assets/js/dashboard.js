@@ -448,21 +448,91 @@ async function abrirModalDetalhes(idemail) {
                 </div>
                 ` : ''}
                 
-                <!-- Corpo do E-mail -->
+                <!-- Corpo do E-mail com Abas -->
                 <div class="col-12">
                     <div class="detail-label mb-2"><i class="fas fa-envelope-open-text text-success"></i> Corpo do E-mail</div>
-                    ${usarIframe && corpoEmailHtml ? `
-                    <iframe 
-                        class="email-iframe-preview" 
-                        srcdoc="${corpoEmailHtml}"
-                        sandbox="allow-same-origin"
-                        title="Preview do E-mail"
-                    ></iframe>
-                    ` : `
-                    <div class="email-body-preview">
-                        <em class="text-muted">Sem conteúdo</em>
+                    
+                    <ul class="nav nav-tabs email-tabs" id="emailTabs-${email.idemail}" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="preview-tab-${email.idemail}" data-bs-toggle="tab" data-bs-target="#preview-${email.idemail}" type="button" role="tab">
+                                <i class="fas fa-eye"></i> Preview
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="html-tab-${email.idemail}" data-bs-toggle="tab" data-bs-target="#html-${email.idemail}" type="button" role="tab">
+                                <i class="fas fa-code"></i> HTML Bruto
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="texto-tab-${email.idemail}" data-bs-toggle="tab" data-bs-target="#texto-${email.idemail}" type="button" role="tab">
+                                <i class="fas fa-align-left"></i> Texto Bruto
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="payload-tab-${email.idemail}" data-bs-toggle="tab" data-bs-target="#payload-${email.idemail}" type="button" role="tab">
+                                <i class="fas fa-file-code"></i> Payload Original
+                                ${email.payload_original ? '<span class="badge bg-warning ms-1">JSON</span>' : '<span class="badge bg-secondary ms-1">N/A</span>'}
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="emailTabsContent-${email.idemail}">
+                        <!-- Aba Preview -->
+                        <div class="tab-pane fade show active" id="preview-${email.idemail}" role="tabpanel">
+                            ${usarIframe && corpoEmailHtml ? `
+                            <iframe 
+                                class="email-iframe-preview" 
+                                srcdoc="${corpoEmailHtml}"
+                                sandbox="allow-same-origin"
+                                title="Preview do E-mail"
+                            ></iframe>
+                            ` : `
+                            <div class="email-body-preview">
+                                <em class="text-muted">Sem conteúdo</em>
+                            </div>
+                            `}
+                        </div>
+                        
+                        <!-- Aba HTML Bruto -->
+                        <div class="tab-pane fade" id="html-${email.idemail}" role="tabpanel">
+                            <div class="code-preview-container">
+                                <button class="btn btn-sm btn-outline-info btn-copy-code" onclick="copiarConteudoDash('html', ${email.idemail})">
+                                    <i class="fas fa-copy"></i> Copiar
+                                </button>
+                                <pre class="code-preview" id="html-content-${email.idemail}">${escapeHtml(email.corpo_email || email.corpo_html || 'Sem conteúdo HTML')}</pre>
+                            </div>
+                        </div>
+                        
+                        <!-- Aba Texto Bruto -->
+                        <div class="tab-pane fade" id="texto-${email.idemail}" role="tabpanel">
+                            <div class="code-preview-container">
+                                <button class="btn btn-sm btn-outline-info btn-copy-code" onclick="copiarConteudoDash('texto', ${email.idemail})">
+                                    <i class="fas fa-copy"></i> Copiar
+                                </button>
+                                <pre class="code-preview" id="texto-content-${email.idemail}">${escapeHtml(email.corpo_texto || email.corpo_email || 'Sem conteúdo texto')}</pre>
+                            </div>
+                        </div>
+                        
+                        <!-- Aba Payload Original -->
+                        <div class="tab-pane fade" id="payload-${email.idemail}" role="tabpanel">
+                            <div class="code-preview-container">
+                                <button class="btn btn-sm btn-outline-info btn-copy-code" onclick="copiarConteudoDash('payload', ${email.idemail})">
+                                    <i class="fas fa-copy"></i> Copiar
+                                </button>
+                                <pre class="code-preview" id="payload-content-${email.idemail}">${(() => {
+                                    if (!email.payload_original) return '<em class="text-muted">Payload não disponível (e-mails antigos podem não ter este dado)</em>';
+                                    try {
+                                        const payload = typeof email.payload_original === 'string' 
+                                            ? JSON.parse(email.payload_original) 
+                                            : email.payload_original;
+                                        return escapeHtml(JSON.stringify(payload, null, 2));
+                                    } catch(e) {
+                                        return escapeHtml(email.payload_original);
+                                    }
+                                })()}</pre>
+                            </div>
+                        </div>
                     </div>
-                    `}
                 </div>
                 
                 ${email.mensagem_erro ? `
@@ -470,31 +540,6 @@ async function abrirModalDetalhes(idemail) {
                     <div class="alert alert-danger mb-0">
                         <strong><i class="fas fa-exclamation-triangle"></i> Erro de Envio:</strong><br>
                         <code>${escapeHtml(email.mensagem_erro)}</code>
-                    </div>
-                </div>
-                ` : ''}
-                
-                ${email.payload_original ? `
-                <div class="col-12 mt-3">
-                    <div class="detail-card">
-                        <div class="detail-label mb-2">
-                            <i class="fas fa-code text-info"></i> Payload Original (Debug)
-                            <button class="btn btn-sm btn-outline-info ms-2" onclick="togglePayloadDash()">
-                                <i class="fas fa-eye" id="payloadToggleIconDash"></i>
-                            </button>
-                        </div>
-                        <div id="payloadContentDash" style="display: none;">
-                            <pre class="mb-0" style="background: #0d1b2a; color: #00d9ff; padding: 1rem; border-radius: 0.5rem; font-size: 0.85rem; max-height: 300px; overflow: auto;">${(() => {
-                                try {
-                                    const payload = typeof email.payload_original === 'string' 
-                                        ? JSON.parse(email.payload_original) 
-                                        : email.payload_original;
-                                    return escapeHtml(JSON.stringify(payload, null, 2));
-                                } catch(e) {
-                                    return escapeHtml(email.payload_original);
-                                }
-                            })()}</pre>
-                        </div>
                     </div>
                 </div>
                 ` : ''}
@@ -528,6 +573,34 @@ function togglePayloadDash() {
         icon.classList.remove('fa-eye-slash');
         icon.classList.add('fa-eye');
     }
+}
+
+// Copiar conteúdo HTML, Texto ou Payload (Dashboard)
+function copiarConteudoDash(tipo, idemail) {
+    let elementId;
+    if (tipo === 'html') {
+        elementId = `html-content-${idemail}`;
+    } else if (tipo === 'texto') {
+        elementId = `texto-content-${idemail}`;
+    } else if (tipo === 'payload') {
+        elementId = `payload-content-${idemail}`;
+    }
+    
+    const element = document.getElementById(elementId);
+    
+    if (!element) {
+        toastErro('Conteúdo não encontrado');
+        return;
+    }
+    
+    const texto = element.textContent || element.innerText;
+    
+    navigator.clipboard.writeText(texto).then(() => {
+        toastSucesso(`${tipo.toUpperCase()} copiado para a área de transferência!`);
+    }).catch(err => {
+        console.error('Erro ao copiar:', err);
+        toastErro('Erro ao copiar conteúdo');
+    });
 }
 
 // Reenviar e-mail (Dashboard)

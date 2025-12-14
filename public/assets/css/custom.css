@@ -634,6 +634,81 @@ nav .navbar-nav .nav-link i {
     background: #ffffff;
 }
 
+/* Abas escuras para modal de e-mail */
+.nav-tabs-dark {
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 0;
+}
+
+.nav-tabs-dark .nav-link {
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    color: var(--text-secondary);
+    padding: 0.6rem 1rem;
+    margin-bottom: -1px;
+    transition: var(--transition-fast);
+}
+
+.nav-tabs-dark .nav-link:hover {
+    color: var(--neon-cyan);
+    border-color: var(--border-color) var(--border-color) transparent;
+    background: rgba(0, 217, 255, 0.05);
+}
+
+.nav-tabs-dark .nav-link.active {
+    background: var(--bg-card);
+    color: var(--neon-cyan);
+    border-color: var(--border-color) var(--border-color) var(--bg-card);
+}
+
+/* Code preview para HTML/Texto bruto */
+.code-preview {
+    background: #0d1117;
+    color: #c9d1d9;
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    padding: 1rem;
+    margin: 0;
+    max-height: 400px;
+    overflow: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Tab content ajuste */
+.tab-content > .tab-pane {
+    padding: 0;
+}
+
+.tab-content .email-iframe-preview {
+    border-top: none;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.tab-content .email-body-preview {
+    border-top: none;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+/* Container do código com botão de copiar */
+.code-preview-container {
+    position: relative;
+}
+
+.btn-copy-code {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 10;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
 .email-body-preview * {
     max-width: 100% !important;
 }

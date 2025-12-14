@@ -525,21 +525,95 @@ async function verDetalhes(idemail) {
                     </div>
                     ` : ''}
                     
-                    <!-- Corpo do E-mail -->
+                    <!-- Corpo do E-mail com Abas -->
                     <div class="col-12">
                         <div class="detail-label mb-2"><i class="fas fa-envelope-open-text text-success"></i> Corpo do E-mail</div>
-                        ${usarIframe && corpoEmailHtml ? `
-                        <iframe 
-                            class="email-iframe-preview" 
-                            srcdoc="${corpoEmailHtml}"
-                            sandbox="allow-same-origin"
-                            title="Preview do E-mail"
-                        ></iframe>
-                        ` : `
-                        <div class="email-body-preview">
-                            <em class="text-muted">Sem conteúdo</em>
+                        
+                        <!-- Abas -->
+                        <ul class="nav nav-tabs nav-tabs-dark" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabPreview" type="button">
+                                    <i class="fas fa-eye"></i> Preview
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabHtml" type="button">
+                                    <i class="fas fa-code"></i> HTML Bruto
+                                    ${email.corpo_html ? `<span class="badge bg-info ms-1">${formatarBytes(new Blob([email.corpo_html]).size)}</span>` : ''}
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabTexto" type="button">
+                                    <i class="fas fa-align-left"></i> Texto Bruto
+                                    ${email.corpo_texto ? `<span class="badge bg-success ms-1">${formatarBytes(new Blob([email.corpo_texto]).size)}</span>` : '<span class="badge bg-secondary ms-1">vazio</span>'}
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabPayload" type="button">
+                                    <i class="fas fa-file-code"></i> Payload Original
+                                    ${email.payload_original ? '<span class="badge bg-warning ms-1">JSON</span>' : '<span class="badge bg-secondary ms-1">N/A</span>'}
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <!-- Conteúdo das Abas -->
+                        <div class="tab-content">
+                            <!-- Preview -->
+                            <div class="tab-pane fade show active" id="tabPreview" role="tabpanel">
+                                ${usarIframe && corpoEmailHtml ? `
+                                <iframe 
+                                    class="email-iframe-preview" 
+                                    srcdoc="${corpoEmailHtml}"
+                                    sandbox="allow-same-origin"
+                                    title="Preview do E-mail"
+                                ></iframe>
+                                ` : `
+                                <div class="email-body-preview">
+                                    <em class="text-muted">Sem conteúdo</em>
+                                </div>
+                                `}
+                            </div>
+                            
+                            <!-- HTML Bruto -->
+                            <div class="tab-pane fade" id="tabHtml" role="tabpanel">
+                                <div class="position-relative">
+                                    <button class="btn btn-sm btn-outline-info position-absolute" style="top: 10px; right: 10px; z-index: 10;" onclick="copiarConteudo('htmlBruto')">
+                                        <i class="fas fa-copy"></i> Copiar
+                                    </button>
+                                    <pre id="htmlBruto" class="code-preview">${email.corpo_html ? escapeHtml(email.corpo_html) : '<em class="text-muted">Nenhum HTML enviado</em>'}</pre>
+                                </div>
+                            </div>
+                            
+                            <!-- Texto Bruto -->
+                            <div class="tab-pane fade" id="tabTexto" role="tabpanel">
+                                <div class="position-relative">
+                                    <button class="btn btn-sm btn-outline-info position-absolute" style="top: 10px; right: 10px; z-index: 10;" onclick="copiarConteudo('textoBruto')">
+                                        <i class="fas fa-copy"></i> Copiar
+                                    </button>
+                                    <pre id="textoBruto" class="code-preview">${email.corpo_texto ? escapeHtml(email.corpo_texto) : '<em class="text-muted">Nenhum texto enviado (será gerado automaticamente do HTML)</em>'}</pre>
+                                </div>
+                            </div>
+                            
+                            <!-- Payload Original -->
+                            <div class="tab-pane fade" id="tabPayload" role="tabpanel">
+                                <div class="position-relative">
+                                    <button class="btn btn-sm btn-outline-info position-absolute" style="top: 10px; right: 10px; z-index: 10;" onclick="copiarConteudo('payloadBruto')">
+                                        <i class="fas fa-copy"></i> Copiar
+                                    </button>
+                                    <pre id="payloadBruto" class="code-preview">${(() => {
+                                        if (!email.payload_original) return '<em class="text-muted">Payload não disponível (e-mails antigos podem não ter este dado)</em>';
+                                        try {
+                                            const payload = typeof email.payload_original === 'string' 
+                                                ? JSON.parse(email.payload_original) 
+                                                : email.payload_original;
+                                            return escapeHtml(JSON.stringify(payload, null, 2));
+                                        } catch(e) {
+                                            return escapeHtml(email.payload_original);
+                                        }
+                                    })()}</pre>
+                                </div>
+                            </div>
                         </div>
-                        `}
                     </div>
                     
                     ${email.mensagem_erro ? `
@@ -547,31 +621,6 @@ async function verDetalhes(idemail) {
                         <div class="alert alert-danger mb-0">
                             <strong><i class="fas fa-exclamation-triangle"></i> Erro de Envio:</strong><br>
                             <code>${escapeHtml(email.mensagem_erro)}</code>
-                        </div>
-                    </div>
-                    ` : ''}
-                    
-                    ${email.payload_original ? `
-                    <div class="col-12 mt-3">
-                        <div class="detail-card">
-                            <div class="detail-label mb-2">
-                                <i class="fas fa-code text-info"></i> Payload Original (Debug)
-                                <button class="btn btn-sm btn-outline-info ms-2" onclick="togglePayload()">
-                                    <i class="fas fa-eye" id="payloadToggleIcon"></i>
-                                </button>
-                            </div>
-                            <div id="payloadContent" style="display: none;">
-                                <pre class="mb-0" style="background: #0d1b2a; color: #00d9ff; padding: 1rem; border-radius: 0.5rem; font-size: 0.85rem; max-height: 300px; overflow: auto;">${(() => {
-                                    try {
-                                        const payload = typeof email.payload_original === 'string' 
-                                            ? JSON.parse(email.payload_original) 
-                                            : email.payload_original;
-                                        return escapeHtml(JSON.stringify(payload, null, 2));
-                                    } catch(e) {
-                                        return escapeHtml(email.payload_original);
-                                    }
-                                })()}</pre>
-                            </div>
                         </div>
                     </div>
                     ` : ''}
@@ -707,6 +756,21 @@ async function reenviarEmail(idemail) {
             btnOriginal.innerHTML = '<i class="fas fa-redo"></i>';
         }
     }
+}
+
+// Copiar conteúdo para clipboard
+function copiarConteudo(elementId) {
+    const elemento = document.getElementById(elementId);
+    if (!elemento) return;
+    
+    const texto = elemento.innerText || elemento.textContent;
+    
+    navigator.clipboard.writeText(texto).then(() => {
+        toastSucesso('Conteúdo copiado para a área de transferência!');
+    }).catch(err => {
+        console.error('Erro ao copiar:', err);
+        toastErro('Erro ao copiar conteúdo');
+    });
 }
 
 // Toast de sucesso
