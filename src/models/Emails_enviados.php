@@ -64,10 +64,15 @@ class Emails_enviados extends Model
             'cc' => $dados['cc'] ?? null,
             'bcc' => $dados['bcc'] ?? null,
             'assunto' => $dados['assunto'],
-            'corpo_html' => $dados['corpo_html'],
+            'corpo_html' => $dados['corpo_html'] ?? null,
             'corpo_texto' => $dados['corpo_texto'] ?? null,
             'anexos' => $dados['anexos'] ?? null,
-            'status' => $dados['status'] ?? 'pendente'
+            'status' => $dados['status'] ?? 'pendente',
+            'smtp_code' => $dados['smtp_code'] ?? null,
+            'smtp_response' => $dados['smtp_response'] ?? null,
+            'tamanho_bytes' => $dados['tamanho_bytes'] ?? null,
+            'mensagem_erro' => $dados['mensagem_erro'] ?? null,
+            'tentativas' => $dados['tentativas'] ?? 1
         ];
 
         if (!empty($dados['data_envio'])) {
@@ -83,23 +88,100 @@ class Emails_enviados extends Model
      * @param int $idemail ID do e-mail
      * @param string $status Novo status
      * @param string|null $mensagemErro Mensagem de erro (se houver)
+     * @param string|null $smtpCode Código SMTP
+     * @param string|null $smtpResponse Resposta SMTP
      * @return bool Retorna true se atualizado com sucesso
      */
-    public static function atualizarStatus($idemail, $status, $mensagemErro = null)
-    {
+    public static function atualizarStatus(
+        $idemail, 
+        $status, 
+        $mensagemErro = null,
+        $smtpCode = null,
+        $smtpResponse = null
+    ) {
         $dados = [
             'status' => $status,
-            'mensagem_erro' => $mensagemErro,
             'data_atualizacao' => date('Y-m-d H:i:s')
         ];
 
-        if ($status === 'enviado') {
+        if ($mensagemErro !== null) {
+            $dados['mensagem_erro'] = $mensagemErro;
+        }
+        
+        if ($smtpCode !== null) {
+            $dados['smtp_code'] = $smtpCode;
+        }
+        
+        if ($smtpResponse !== null) {
+            $dados['smtp_response'] = $smtpResponse;
+        }
+
+        if ($status === 'enviado' || $status === 'aceito') {
             $dados['data_envio'] = date('Y-m-d H:i:s');
         }
 
         return self::update($dados)
             ->where('idemail', $idemail)
             ->execute();
+    }
+    
+    /**
+     * Incrementa o contador de tentativas
+     *
+     * @param int $idemail ID do e-mail
+     * @return bool
+     */
+    public static function incrementarTentativas($idemail)
+    {
+        // Usar SQL direto para incrementar
+        $email = self::getById($idemail);
+        if (!$email) {
+            return false;
+        }
+        
+        return self::update([
+            'tentativas' => ($email['tentativas'] ?? 0) + 1,
+            'data_atualizacao' => date('Y-m-d H:i:s')
+        ])->where('idemail', $idemail)->execute();
+    }
+    
+    /**
+     * Obtém e-mails pendentes para reprocessamento
+     *
+     * @param int $limite Limite de registros
+     * @param int $maxTentativas Máximo de tentativas
+     * @return array Lista de e-mails pendentes
+     */
+    public static function obterPendentes($limite = 50, $maxTentativas = 3)
+    {
+        return self::select()
+            ->where('status', 'IN', ['pendente', 'falha'])
+            ->where('tentativas', '<', $maxTentativas)
+            ->orderBy('data_criacao', 'ASC')
+            ->limit($limite)
+            ->get();
+    }
+    
+    /**
+     * Obtém e-mails por status
+     *
+     * @param string|array $status Status ou lista de status
+     * @param int $limite Limite de registros
+     * @return array Lista de e-mails
+     */
+    public static function obterPorStatus($status, $limite = 50)
+    {
+        $query = self::select()
+            ->orderBy('data_criacao', 'DESC')
+            ->limit($limite);
+            
+        if (is_array($status)) {
+            $query->where('status', 'IN', $status);
+        } else {
+            $query->where('status', $status);
+        }
+        
+        return $query->get();
     }
 
     /**

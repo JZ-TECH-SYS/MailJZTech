@@ -130,9 +130,14 @@ function atualizarTabelaEmails(emails) {
  */
 function getBadgeStatus(status) {
     const badges = {
-        'enviado': '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Enviado</span>',
-        'erro': '<span class="badge bg-danger"><i class="fas fa-times-circle"></i> Erro</span>',
-        'pendente': '<span class="badge bg-warning"><i class="fas fa-clock"></i> Pendente</span>'
+        'enviado': '<span class="badge bg-success"><i class="fas fa-check"></i> Enviado</span>',
+        'aceito': '<span class="badge bg-info"><i class="fas fa-check-circle"></i> Aceito</span>',
+        'pendente': '<span class="badge bg-warning"><i class="fas fa-clock"></i> Pendente</span>',
+        'processando': '<span class="badge bg-primary"><i class="fas fa-spinner fa-spin"></i> Processando</span>',
+        'falha': '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Falha</span>',
+        'rejeitado': '<span class="badge bg-dark"><i class="fas fa-ban"></i> Rejeitado</span>',
+        'bounce': '<span class="badge bg-secondary"><i class="fas fa-undo"></i> Bounce</span>',
+        'erro': '<span class="badge bg-danger"><i class="fas fa-times-circle"></i> Erro</span>'
     };
     return badges[status] || '<span class="badge bg-secondary">Desconhecido</span>';
 }
@@ -321,6 +326,15 @@ async function abrirModalDetalhes(idemail) {
             corpoEmail = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit;">${escapeHtml(e.corpo_texto)}</pre>`;
         }
         
+        // Formatar tamanho
+        function formatarBytes(bytes) {
+            if (!bytes || bytes === 0) return 'N/A';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
         content.innerHTML = `
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -355,11 +369,55 @@ async function abrirModalDetalhes(idemail) {
                 </div>
             </div>
 
-            <div class="card border-0 border-start border-warning border-4 mb-3" style="background: rgba(255, 193, 7, 0.15);">
-                <div class="card-body">
-                    <p class="card-text text-muted small mb-2"><i class="fas fa-paper-plane text-warning"></i> Data Envio</p>
-                    <p class="mb-0" style="font-size: 1rem; color: #ffc107; font-weight: 500;">${formatarData(e.data_envio || e.data_criacao)}</p>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="card border-0 border-start border-warning border-4" style="background: rgba(255, 193, 7, 0.15);">
+                        <div class="card-body">
+                            <p class="card-text text-muted small mb-2"><i class="fas fa-paper-plane text-warning"></i> Data Envio</p>
+                            <p class="mb-0" style="font-size: 1rem; color: #ffc107; font-weight: 500;">${formatarData(e.data_envio || e.data_criacao)}</p>
+                        </div>
+                    </div>
                 </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card border-0 border-start border-secondary border-4">
+                        <div class="card-body">
+                            <p class="card-text text-muted small mb-2"><i class="fas fa-server text-secondary"></i> Código SMTP</p>
+                            <p class="mb-0"><code>${e.smtp_code || 'N/A'}</code></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            ${e.smtp_response ? `
+                <div class="card border-0 border-start border-secondary border-4 mb-3">
+                    <div class="card-body">
+                        <p class="card-text text-muted small mb-2"><i class="fas fa-reply text-secondary"></i> Resposta SMTP</p>
+                        <code class="text-muted">${escapeHtml(e.smtp_response)}</code>
+                    </div>
+                </div>
+            ` : ''}
+
+            <div class="row">
+                ${e.tamanho_bytes ? `
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-0 border-start border-info border-4">
+                            <div class="card-body">
+                                <p class="card-text text-muted small mb-2"><i class="fas fa-weight text-info"></i> Tamanho</p>
+                                <p class="mb-0">${formatarBytes(e.tamanho_bytes)}</p>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+                ${e.tentativas > 1 ? `
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-0 border-start border-warning border-4">
+                            <div class="card-body">
+                                <p class="card-text text-muted small mb-2"><i class="fas fa-redo text-warning"></i> Tentativas</p>
+                                <p class="mb-0">${e.tentativas}</p>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
             </div>
 
             <div class="card border-0 border-top border-success border-4 mb-3">

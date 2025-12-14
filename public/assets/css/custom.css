@@ -557,6 +557,15 @@ nav .navbar-nav .nav-link i {
     color: var(--neon-cyan);
 }
 
+.modal-header .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+    opacity: 0.8;
+}
+
+.modal-header .btn-close:hover {
+    opacity: 1;
+}
+
 .modal-title {
     color: var(--neon-cyan);
     font-weight: 600;
@@ -564,11 +573,99 @@ nav .navbar-nav .nav-link i {
 
 .modal-body {
     color: var(--text-secondary);
+    background-color: var(--bg-card);
 }
 
 .modal-footer {
     background-color: rgba(20, 24, 41, 0.5);
     border-top: 1px solid var(--border-color);
+}
+
+/* ===== MODAL DETAIL CARDS ===== */
+.detail-card {
+    background: rgba(20, 24, 41, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 12px 15px;
+    height: 100%;
+}
+
+.detail-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.detail-value {
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    word-break: break-word;
+}
+
+.detail-value code {
+    background: rgba(0, 217, 255, 0.1);
+    color: var(--neon-cyan);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+/* Email Body Preview - Dark Theme */
+.email-body-preview {
+    background: #1a1a2e;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+    color: #e0e0e0;
+}
+
+.email-body-preview * {
+    max-width: 100% !important;
+}
+
+.email-body-preview img {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+.email-body-preview a {
+    color: var(--neon-cyan) !important;
+}
+
+.email-body-preview table {
+    background: transparent !important;
+    border-color: var(--border-color) !important;
+}
+
+.email-body-preview td,
+.email-body-preview th {
+    background: transparent !important;
+    border-color: var(--border-color) !important;
+    color: #e0e0e0 !important;
+}
+
+/* Scrollbar for email preview */
+.email-body-preview::-webkit-scrollbar {
+    width: 8px;
+}
+
+.email-body-preview::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.email-body-preview::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.email-body-preview::-webkit-scrollbar-thumb:hover {
+    background: var(--neon-cyan);
 }
 
 /* ===== UTILITIES ===== */

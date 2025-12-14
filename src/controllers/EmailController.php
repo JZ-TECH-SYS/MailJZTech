@@ -311,4 +311,111 @@ class EmailController extends ctrl
             ctrl::rejectResponse($e);
         }
     }
+    
+    /**
+     * Recebe webhook de eventos de e-mail (bounce, delivery, etc.)
+     * POST /api/emails/webhook
+     * 
+     * Suporta formatos de provedores comuns (Amazon SES, SendGrid, etc.)
+     * Também aceita formato genérico:
+     * {
+     *   "idemail": 123,
+     *   "evento": "bounce|delivery|open|click|spam",
+     *   "codigo_smtp": "550",
+     *   "mensagem": "Mailbox not found",
+     *   "dados": {}
+     * }
+     *
+     * @return void
+     */
+    public function webhook()
+    {
+        try {
+            $payload = ctrl::getBody(false);
+            
+            // Se payload vazio, tentar ler do php://input diretamente
+            if (empty($payload)) {
+                $rawInput = file_get_contents('php://input');
+                $payload = json_decode($rawInput, true) ?? [];
+            }
+            
+            if (empty($payload)) {
+                ctrl::log("Webhook recebido sem payload");
+                ctrl::response(['mensagem' => 'Payload vazio'], 400);
+                return;
+            }
+            
+            ctrl::log("Webhook recebido: " . json_encode($payload));
+            
+            // Processar via handler
+            $resultado = EmailsHandler::processarWebhook($payload);
+            
+            if ($resultado['sucesso']) {
+                ctrl::response($resultado, 200);
+            } else {
+                ctrl::response($resultado, 400);
+            }
+            
+        } catch (\Exception $e) {
+            ctrl::log("Erro em webhook: " . $e->getMessage());
+            // Sempre retornar 200 para webhooks para evitar retentativas
+            ctrl::response(['mensagem' => 'Erro processado', 'erro' => $e->getMessage()], 200);
+        }
+    }
+    
+    /**
+     * Obtém histórico de eventos de um e-mail
+     * GET /api/emails/eventos?idemail=123
+     *
+     * @return void
+     */
+    public function obterEventos()
+    {
+        try {
+            $idemail = filter_input(INPUT_GET, 'idemail', FILTER_VALIDATE_INT);
+            
+            if (!$idemail) {
+                throw new \Exception('idemail é obrigatório');
+            }
+            
+            $eventos = EmailsHandler::obterEventos($idemail);
+            
+            ctrl::response([
+                'idemail' => $idemail,
+                'eventos' => $eventos
+            ], 200);
+            
+        } catch (\Exception $e) {
+            ctrl::log("Erro em obterEventos: " . $e->getMessage());
+            ctrl::rejectResponse($e);
+        }
+    }
+    
+    /**
+     * Valida um HTML de e-mail antes do envio
+     * POST /api/emails/validar-html
+     * 
+     * Body:
+     * {
+     *   "html": "<html>...</html>"
+     * }
+     *
+     * @return void
+     */
+    public function validarHtml()
+    {
+        try {
+            $dados = ctrl::getBody(true);
+            
+            ctrl::verificarCamposVazios($dados, ['html']);
+            
+            $resultado = EmailsHandler::validarHtml($dados['html']);
+            
+            ctrl::response($resultado, $resultado['valid'] ? 200 : 400);
+            
+        } catch (\Exception $e) {
+            ctrl::log("Erro em validarHtml: " . $e->getMessage());
+            ctrl::rejectResponse($e);
+        }
+    }
 }

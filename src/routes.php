@@ -78,6 +78,11 @@ $router->get('/statsEmails', 'EmailController@statsEmails', true);
 $router->post('/testarEmail', 'EmailController@testarEmail', true);
 $router->get('/validarConfigEmail', 'EmailController@validarConfigEmail');
 
+// Novos endpoints de e-mail (validação e eventos)
+$router->post('/api/emails/webhook', 'EmailController@webhook');                 // Webhook público para bounces
+$router->get('/api/emails/eventos', 'EmailController@obterEventos', true);       // Histórico de eventos
+$router->post('/api/emails/validar-html', 'EmailController@validarHtml', true);  // Validar HTML antes do envio
+
 // ==========================================
 // BACKUPS (Views - GET)
 // ==========================================

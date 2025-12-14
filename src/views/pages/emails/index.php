@@ -23,8 +23,13 @@
             <select class="form-select" id="filtroStatus">
                 <option value="">Todos os status</option>
                 <option value="enviado">Enviado</option>
-                <option value="erro">Erro</option>
+                <option value="aceito">Aceito</option>
                 <option value="pendente">Pendente</option>
+                <option value="processando">Processando</option>
+                <option value="falha">Falha</option>
+                <option value="rejeitado">Rejeitado</option>
+                <option value="bounce">Bounce</option>
+                <option value="erro">Erro</option>
             </select>
         </div>
         <div class="col-md-3">
@@ -165,7 +170,10 @@
                     <p class="mt-3 text-muted">Carregando detalhes...</p>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-success" id="btnReenviarModal" disabled>
+                    <i class="fas fa-redo"></i> Reenviar E-mail
+                </button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times"></i> Fechar
                 </button>
@@ -293,9 +301,14 @@ function renderizarEmails(emails) {
                 <td>${statusBadge}</td>
                 <td>${dataFormatada}</td>
                 <td>
-                    <button class="btn btn-sm btn-info btn-ver-detalhe" data-idemail="${email.idemail}">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-info btn-ver-detalhe" data-idemail="${email.idemail}" title="Ver detalhes">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-success btn-reenviar" data-idemail="${email.idemail}" title="Reenviar e-mail">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -305,6 +318,13 @@ function renderizarEmails(emails) {
     tbody.querySelectorAll('.btn-ver-detalhe').forEach(btn => {
         btn.addEventListener('click', () => {
             verDetalhes(btn.getAttribute('data-idemail'));
+        });
+    });
+    
+    // Adicionar event listeners nos botões de reenviar
+    tbody.querySelectorAll('.btn-reenviar').forEach(btn => {
+        btn.addEventListener('click', () => {
+            reenviarEmail(btn.getAttribute('data-idemail'));
         });
     });
 }
@@ -381,77 +401,155 @@ async function verDetalhes(idemail) {
             const email = data.result;
             
             // Processar corpo do e-mail
-            let corpoEmail = 'Sem conteúdo';
+            let corpoEmail = '<em class="text-muted">Sem conteúdo</em>';
             if (email.corpo_html && email.corpo_html.trim() !== '') {
                 corpoEmail = email.corpo_html;
             } else if (email.corpo_texto && email.corpo_texto.trim() !== '') {
-                corpoEmail = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit;">${escapeHtml(email.corpo_texto)}</pre>`;
+                corpoEmail = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; color: #d4d4d4;">${escapeHtml(email.corpo_texto)}</pre>`;
+            }
+            
+            // Calcular tamanho se não vier do backend
+            let tamanhoExibir = email.tamanho_bytes;
+            if (!tamanhoExibir && email.corpo_html) {
+                tamanhoExibir = new Blob([email.corpo_html]).size;
             }
             
             body.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <strong><i class="fas fa-hashtag"></i> ID:</strong><br>
-                        <span class="text-muted">#${email.idemail}</span>
+                <div class="row g-3">
+                    <!-- ID e Status -->
+                    <div class="col-md-6">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-hashtag text-info"></i> ID</div>
+                            <div class="detail-value">#${email.idemail}</div>
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <strong><i class="fas fa-info-circle"></i> Status:</strong><br>
-                        ${getStatusBadge(email.status)}
+                    <div class="col-md-6">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-info-circle text-info"></i> Status</div>
+                            <div class="detail-value">${getStatusBadge(email.status)}</div>
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <strong><i class="fas fa-cogs"></i> Sistema:</strong><br>
-                        <span class="text-muted">${email.idsistema || 'N/A'}</span>
+                    
+                    <!-- Sistema e Data Criação -->
+                    <div class="col-md-6">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-cogs text-warning"></i> Sistema</div>
+                            <div class="detail-value">${email.idsistema || 'N/A'}</div>
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <strong><i class="fas fa-calendar-plus"></i> Data de Criação:</strong><br>
-                        <span class="text-muted">${formatarData(email.data_criacao)}</span>
+                    <div class="col-md-6">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-calendar-plus text-success"></i> Data de Criação</div>
+                            <div class="detail-value">${formatarData(email.data_criacao)}</div>
+                        </div>
                     </div>
-                    <div class="col-md-12 mb-3">
-                        <strong><i class="fas fa-user"></i> Destinatário:</strong><br>
-                        <span class="text-muted">${escapeHtml(email.destinatario)}</span>
+                    
+                    <!-- Destinatário -->
+                    <div class="col-12">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-user text-danger"></i> Destinatário</div>
+                            <div class="detail-value">${escapeHtml(email.destinatario)}</div>
+                        </div>
                     </div>
+                    
                     ${email.cc ? `
-                        <div class="col-md-12 mb-3">
-                            <strong><i class="fas fa-users"></i> CC:</strong><br>
-                            <span class="text-muted">${escapeHtml(email.cc)}</span>
+                    <div class="col-12">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-users text-secondary"></i> CC</div>
+                            <div class="detail-value">${escapeHtml(email.cc)}</div>
                         </div>
+                    </div>
                     ` : ''}
+                    
                     ${email.bcc ? `
-                        <div class="col-md-12 mb-3">
-                            <strong><i class="fas fa-user-secret"></i> BCC:</strong><br>
-                            <span class="text-muted">${escapeHtml(email.bcc)}</span>
+                    <div class="col-12">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-user-secret text-secondary"></i> BCC</div>
+                            <div class="detail-value">${escapeHtml(email.bcc)}</div>
                         </div>
+                    </div>
                     ` : ''}
-                    <div class="col-md-12 mb-3">
-                        <strong><i class="fas fa-heading"></i> Assunto:</strong><br>
-                        <span class="text-muted">${escapeHtml(email.assunto)}</span>
+                    
+                    <!-- Assunto -->
+                    <div class="col-12">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-heading text-primary"></i> Assunto</div>
+                            <div class="detail-value">${escapeHtml(email.assunto)}</div>
+                        </div>
                     </div>
-                    <div class="col-md-12 mb-3">
-                        <strong><i class="fas fa-paper-plane"></i> Data de Envio:</strong><br>
-                        <span class="text-muted">${formatarData(email.data_envio)}</span>
+                    
+                    <!-- Data Envio e SMTP -->
+                    <div class="col-md-6">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-paper-plane text-success"></i> Data de Envio</div>
+                            <div class="detail-value">${formatarData(email.data_envio)}</div>
+                        </div>
                     </div>
-                    <div class="col-md-12 mb-3">
-                        <strong><i class="fas fa-envelope-open-text"></i> Corpo do E-mail:</strong>
-                        <div class="border rounded p-3 mt-2 bg-white" style="max-height: 400px; overflow-y: auto;">
+                    <div class="col-md-6">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-server text-secondary"></i> Código SMTP</div>
+                            <div class="detail-value"><code>${email.smtp_code || 'N/A'}</code></div>
+                        </div>
+                    </div>
+                    
+                    ${email.smtp_response ? `
+                    <div class="col-12">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-reply text-secondary"></i> Resposta SMTP</div>
+                            <div class="detail-value"><code>${escapeHtml(email.smtp_response)}</code></div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Tamanho e Tentativas -->
+                    <div class="col-md-6">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-weight text-info"></i> Tamanho</div>
+                            <div class="detail-value">${tamanhoExibir ? formatarBytes(tamanhoExibir) : 'N/A'}</div>
+                        </div>
+                    </div>
+                    ${email.tentativas ? `
+                    <div class="col-md-6">
+                        <div class="detail-card">
+                            <div class="detail-label"><i class="fas fa-redo text-warning"></i> Tentativas</div>
+                            <div class="detail-value">${email.tentativas}</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Corpo do E-mail -->
+                    <div class="col-12">
+                        <div class="detail-label mb-2"><i class="fas fa-envelope-open-text text-success"></i> Corpo do E-mail</div>
+                        <div class="email-body-preview">
                             ${corpoEmail}
                         </div>
                     </div>
+                    
                     ${email.mensagem_erro ? `
-                        <div class="col-md-12">
-                            <div class="alert alert-danger mb-0">
-                                <strong><i class="fas fa-exclamation-triangle"></i> Erro de Envio:</strong><br>
-                                <code>${escapeHtml(email.mensagem_erro)}</code>
-                            </div>
+                    <div class="col-12">
+                        <div class="alert alert-danger mb-0">
+                            <strong><i class="fas fa-exclamation-triangle"></i> Erro de Envio:</strong><br>
+                            <code>${escapeHtml(email.mensagem_erro)}</code>
                         </div>
+                    </div>
                     ` : ''}
                 </div>
             `;
+            
+            // Habilitar botão de reenviar no modal
+            emailAtualModal = email.idemail;
+            const btnReenviar = document.getElementById('btnReenviarModal');
+            btnReenviar.disabled = false;
+            btnReenviar.onclick = () => reenviarEmail(emailAtualModal);
+            
         } else {
             body.innerHTML = `
                 <div class="alert alert-danger">
                     <i class="fas fa-times-circle"></i> ${escapeHtml(data.result?.mensagem || 'Erro ao carregar detalhes')}
                 </div>
             `;
+            // Desabilitar botão se erro
+            document.getElementById('btnReenviarModal').disabled = true;
         }
     } catch (error) {
         body.innerHTML = `
@@ -459,6 +557,123 @@ async function verDetalhes(idemail) {
                 <i class="fas fa-times-circle"></i> Erro: ${escapeHtml(error.message)}
             </div>
         `;
+    }
+}
+
+// Variável para armazenar o ID do e-mail atual no modal
+let emailAtualModal = null;
+
+// Reenviar e-mail
+async function reenviarEmail(idemail) {
+    // Confirmação antes de reenviar
+    if (!confirm('Deseja reenviar este e-mail?')) {
+        return;
+    }
+    
+    try {
+        // Mostrar loading
+        const btnOriginal = document.querySelector(`.btn-reenviar[data-idemail="${idemail}"]`);
+        if (btnOriginal) {
+            btnOriginal.disabled = true;
+            btnOriginal.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        }
+        
+        // Buscar dados do e-mail original
+        const responseDetalhe = await fetchComToken(`/detalheEmail/${idemail}`);
+        const dataDetalhe = await responseDetalhe.json();
+        
+        if (dataDetalhe.error || !dataDetalhe.result) {
+            throw new Error(dataDetalhe.result?.mensagem || 'Erro ao carregar dados do e-mail');
+        }
+        
+        const emailOriginal = dataDetalhe.result;
+        
+        // Preparar payload para reenvio
+        const payload = {
+            idsistema: emailOriginal.idsistema,
+            destinatario: emailOriginal.destinatario,
+            assunto: emailOriginal.assunto,
+            corpo_html: emailOriginal.corpo_html || null,
+            corpo_texto: emailOriginal.corpo_texto || null,
+            cc: emailOriginal.cc || null,
+            bcc: emailOriginal.bcc || null,
+            anexos: emailOriginal.anexos ? JSON.parse(emailOriginal.anexos) : null
+        };
+        
+        // Enviar
+        const response = await fetchComToken('/sendEmail', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        
+        if (!data.error && data.result?.sucesso) {
+            // Sucesso
+            toastSucesso('E-mail reenviado com sucesso!');
+            
+            // Recarregar lista
+            carregarEmails(paginaAtual);
+            
+            // Fechar modal se estiver aberto
+            const modalEl = document.getElementById('modalDetalhesEmail');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) {
+                modal.hide();
+            }
+        } else {
+            throw new Error(data.result?.mensagem || 'Erro ao reenviar e-mail');
+        }
+        
+    } catch (error) {
+        console.error('Erro ao reenviar:', error);
+        toastErro('Erro ao reenviar: ' + error.message);
+    } finally {
+        // Restaurar botão
+        const btnOriginal = document.querySelector(`.btn-reenviar[data-idemail="${idemail}"]`);
+        if (btnOriginal) {
+            btnOriginal.disabled = false;
+            btnOriginal.innerHTML = '<i class="fas fa-redo"></i>';
+        }
+    }
+}
+
+// Toast de sucesso
+function toastSucesso(mensagem) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'success',
+            title: 'Sucesso!',
+            text: mensagem,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            background: '#1a1f3a',
+            color: '#fff'
+        });
+    } else {
+        alert(mensagem);
+    }
+}
+
+// Toast de erro
+function toastErro(mensagem) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro',
+            text: mensagem,
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 5000,
+            background: '#1a1f3a',
+            color: '#fff'
+        });
+    } else {
+        alert(mensagem);
     }
 }
 
@@ -479,9 +694,14 @@ function limparFiltros() {
 // Helpers
 function getStatusBadge(status) {
     const badges = {
-        'enviado': '<span class="badge bg-success">Enviado</span>',
-        'erro': '<span class="badge bg-danger">Erro</span>',
-        'pendente': '<span class="badge bg-warning text-dark">Pendente</span>'
+        'enviado': '<span class="badge bg-success"><i class="fas fa-check"></i> Enviado</span>',
+        'aceito': '<span class="badge bg-info"><i class="fas fa-check-circle"></i> Aceito</span>',
+        'pendente': '<span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Pendente</span>',
+        'processando': '<span class="badge bg-primary"><i class="fas fa-spinner fa-spin"></i> Processando</span>',
+        'falha': '<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Falha</span>',
+        'rejeitado': '<span class="badge bg-dark"><i class="fas fa-ban"></i> Rejeitado</span>',
+        'bounce': '<span class="badge bg-secondary"><i class="fas fa-undo"></i> Bounce</span>',
+        'erro': '<span class="badge bg-danger"><i class="fas fa-times"></i> Erro</span>'
     };
     return badges[status] || '<span class="badge bg-secondary">Desconhecido</span>';
 }
@@ -507,6 +727,14 @@ function escapeHtml(text) {
         "'": '&#039;'
     };
     return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+function formatarBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 // Inicializar ao carregar
