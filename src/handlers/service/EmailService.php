@@ -238,11 +238,14 @@ class EmailService
             $mail->Subject = $assunto;
             $mail->Body    = $htmlBody;
             
-            // Gerar altBody automaticamente se não fornecido
-            if ($altBody) {
+            // Gerar altBody automaticamente se não fornecido (IMPORTANTE para entrega!)
+            // Emails multipart (HTML + texto) são considerados mais legítimos
+            if ($altBody && !empty(trim($altBody))) {
                 $mail->AltBody = $altBody;
+                $debugLog[] = "Versão texto: fornecida pelo usuário (" . strlen($altBody) . " chars)";
             } else {
                 $mail->AltBody = self::htmlToPlainText($htmlBody);
+                $debugLog[] = "Versão texto: gerada automaticamente (" . strlen($mail->AltBody) . " chars)";
             }
             
             // ========================================
@@ -437,6 +440,28 @@ class EmailService
             $result['warnings'][] = 'HTML contém CSS externo que pode não carregar em alguns clientes';
         }
         
+        // Verificar imagens externas (podem ser bloqueadas)
+        if (preg_match('/<img[^>]+src\s*=\s*["\']https?:/i', $html)) {
+            $result['warnings'][] = 'HTML contém imagens externas que podem ser bloqueadas por padrão em alguns clientes';
+        }
+        
+        // Verificar palavras que trigam spam
+        $spamWords = ['grátis', 'gratuito', 'clique aqui', 'urgente', 'promoção', 'oferta', 'ganhe', 'prêmio'];
+        $htmlLower = strtolower($html);
+        foreach ($spamWords as $word) {
+            if (stripos($htmlLower, $word) !== false) {
+                $result['warnings'][] = "HTML contém palavra suspeita para filtros de spam: '{$word}'";
+                break; // Só avisar uma vez
+            }
+        }
+        
+        // Verificar se tem muitos alertas/cores de aviso (parece spam)
+        if (preg_match_all('/(#ff0000|#ff4444|red|alerta|crítico|urgente)/i', $html, $matches)) {
+            if (count($matches[0]) > 3) {
+                $result['warnings'][] = 'HTML contém muitos elementos de alerta/vermelho que podem triggar filtros de spam';
+            }
+        }
+        
         return $result;
     }
     
@@ -460,14 +485,51 @@ class EmailService
     }
     
     /**
-     * Converte HTML para texto puro (fallback)
+     * Converte HTML para texto puro (fallback) - versão melhorada
      */
     public static function htmlToPlainText(string $html): string
     {
-        // Substituir tags de bloco por quebras de linha
-        $text = preg_replace('/<(br|p|div|h[1-6]|li|tr)[^>]*>/i', "\n", $html);
+        // Preservar links - converter <a href="url">texto</a> para "texto (url)"
+        $text = preg_replace_callback(
+            '/<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)<\/a>/is',
+            function($matches) {
+                $url = $matches[1];
+                $linkText = strip_tags($matches[2]);
+                // Se o texto do link é igual à URL, não duplicar
+                if (trim($linkText) === trim($url) || empty(trim($linkText))) {
+                    return $url;
+                }
+                return "{$linkText} ({$url})";
+            },
+            $html
+        );
         
-        // Remover todas as tags
+        // Converter tabelas para formato legível
+        $text = preg_replace('/<\/th>\s*<th[^>]*>/i', ' | ', $text);
+        $text = preg_replace('/<\/td>\s*<td[^>]*>/i', ' | ', $text);
+        $text = preg_replace('/<\/tr>\s*<tr[^>]*>/i', "\n", $text);
+        
+        // Converter listas
+        $text = preg_replace('/<li[^>]*>/i', "\n• ", $text);
+        
+        // Converter headers para texto com destaque
+        $text = preg_replace_callback(
+            '/<h([1-6])[^>]*>(.*?)<\/h[1-6]>/is',
+            function($matches) {
+                $content = strip_tags($matches[2]);
+                return "\n\n" . strtoupper($content) . "\n" . str_repeat('=', strlen($content)) . "\n";
+            },
+            $text
+        );
+        
+        // Substituir tags de bloco por quebras de linha
+        $text = preg_replace('/<(br|p|div|tr|blockquote)[^>]*>/i', "\n", $text);
+        $text = preg_replace('/<\/(p|div|tr|blockquote|table|ul|ol)>/i', "\n", $text);
+        
+        // Converter <hr> para linha
+        $text = preg_replace('/<hr[^>]*>/i', "\n" . str_repeat('-', 40) . "\n", $text);
+        
+        // Remover todas as tags restantes
         $text = strip_tags($text);
         
         // Decodificar entidades HTML

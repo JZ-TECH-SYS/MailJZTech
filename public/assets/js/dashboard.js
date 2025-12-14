@@ -321,12 +321,20 @@ async function abrirModalDetalhes(idemail) {
         }
         const e = data.result;
         
-        // Processar corpo do e-mail
-        let corpoEmail = '<em class="text-muted">Sem conteúdo</em>';
+        // Processar corpo do e-mail - usando iframe para isolar o HTML
+        let corpoEmailHtml = '';
+        let usarIframe = false;
+        
         if (e.corpo_html && e.corpo_html.trim() !== '') {
-            corpoEmail = e.corpo_html;
+            usarIframe = true;
+            // Escapar aspas e barras invertidas para o srcdoc
+            corpoEmailHtml = e.corpo_html
+                .replace(/\\/g, '\\\\')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         } else if (e.corpo_texto && e.corpo_texto.trim() !== '') {
-            corpoEmail = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit;">${escapeHtml(e.corpo_texto)}</pre>`;
+            corpoEmailHtml = `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: monospace; color: #333; margin: 0;">${escapeHtml(e.corpo_texto)}</pre>`;
+            usarIframe = true;
         }
         
         // Formatar tamanho
@@ -428,9 +436,19 @@ async function abrirModalDetalhes(idemail) {
                     <h6 class="mb-0"><i class="fas fa-envelope-open-text text-success"></i> Corpo do E-mail</h6>
                 </div>
                 <div class="card-body pt-0">
-                    <div style="background:#1e1e1e; border:1px solid #404040; border-radius:0.375rem; padding:1rem; max-height:350px; overflow-y:auto; font-family: 'Courier New', monospace; color: #d4d4d4;">
-                        ${corpoEmail}
-                    </div>
+                    ${usarIframe && corpoEmailHtml ? `
+                        <iframe 
+                            class="email-iframe-preview" 
+                            srcdoc="${corpoEmailHtml}"
+                            sandbox="allow-same-origin"
+                            title="Preview do E-mail"
+                            style="width: 100%; min-height: 350px; max-height: 500px; border: 1px solid #dee2e6; border-radius: 0.375rem; background: #ffffff;"
+                        ></iframe>
+                    ` : `
+                        <div style="background:#1e1e1e; border:1px solid #404040; border-radius:0.375rem; padding:1rem; max-height:350px; overflow-y:auto;">
+                            <em class="text-muted">Sem conteúdo</em>
+                        </div>
+                    `}
                 </div>
             </div>
 
