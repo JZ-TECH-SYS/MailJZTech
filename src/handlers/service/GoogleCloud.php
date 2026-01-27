@@ -217,4 +217,101 @@ class GoogleCloud
             $object->delete();
         }
     }
+
+    /**
+     * Lista todos os objetos em um prefixo do bucket que são mais antigos que um timestamp.
+     *
+     * @param string $bucketName Nome do bucket
+     * @param string $prefix Prefixo (pasta) para filtrar objetos
+     * @param int $olderThanTimestamp Timestamp limite - objetos mais antigos serão retornados
+     *
+     * @return array Lista de objetos com name e timeCreated
+     */
+    public static function listObjectsOlderThan(string $bucketName, string $prefix, int $olderThanTimestamp): array
+    {
+        $storage = self::getStorageClient();
+        $bucket = $storage->bucket($bucketName);
+
+        $options = [
+            'prefix' => rtrim($prefix, '/') . '/'
+        ];
+
+        $objects = $bucket->objects($options);
+        $result = [];
+
+        foreach ($objects as $object) {
+            $info = $object->info();
+            
+            // Pular se não for um arquivo de backup
+            if (!preg_match('/\.sql\.gz$/', $info['name'])) {
+                continue;
+            }
+
+            // Verificar data de criação
+            $timeCreated = isset($info['timeCreated']) 
+                ? strtotime($info['timeCreated']) 
+                : null;
+
+            if ($timeCreated && $timeCreated < $olderThanTimestamp) {
+                $result[] = [
+                    'name' => $info['name'],
+                    'timeCreated' => $info['timeCreated'],
+                    'size' => $info['size'] ?? 0
+                ];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Lista todos os objetos de backup em um prefixo do bucket.
+     *
+     * @param string $bucketName Nome do bucket
+     * @param string $prefix Prefixo (pasta) para filtrar objetos
+     * @param int $limite Número máximo de objetos a retornar (0 = sem limite)
+     *
+     * @return array Lista de objetos
+     */
+    public static function listBackupObjects(string $bucketName, string $prefix, int $limite = 0): array
+    {
+        $storage = self::getStorageClient();
+        $bucket = $storage->bucket($bucketName);
+
+        $options = [
+            'prefix' => rtrim($prefix, '/') . '/'
+        ];
+
+        $objects = $bucket->objects($options);
+        $result = [];
+        $count = 0;
+
+        foreach ($objects as $object) {
+            $info = $object->info();
+            
+            // Filtrar apenas arquivos de backup
+            if (!preg_match('/\.sql\.gz$/', $info['name'])) {
+                continue;
+            }
+
+            $result[] = [
+                'name' => $info['name'],
+                'timeCreated' => $info['timeCreated'] ?? null,
+                'size' => $info['size'] ?? 0,
+                'md5Hash' => $info['md5Hash'] ?? null
+            ];
+
+            $count++;
+            if ($limite > 0 && $count >= $limite) {
+                break;
+            }
+        }
+
+        // Ordenar por data de criação (mais recente primeiro)
+        usort($result, function($a, $b) {
+            return strtotime($b['timeCreated'] ?? '0') - strtotime($a['timeCreated'] ?? '0');
+        });
+
+        return $result;
+    }
 }

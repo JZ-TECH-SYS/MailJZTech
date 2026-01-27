@@ -298,13 +298,93 @@ MailJZTech/
 
 ```
 bucket: dbjztech
-  └── pasta_base/              (ex: mailjztech_prod)
-      └── 2025/
-          └── 11/
-              └── 09/
-                  ├── backup-20251109-030000.sql.gz
-                  ├── backup-20251109-153045.sql.gz
-                  └── ...
+  └── pasta_base/                          (ex: mailjztech_prod)
+      └── prod/                            (ambiente: prod/hml/dev)
+          └── 2026/
+              └── 01/
+                  └── 27/
+                      ├── mailjztech-prod-20260127_030000.sql.gz
+                      ├── mailjztech-prod-20260127_153045.sql.gz
+                      └── ...
+```
+
+**Formato do nome**: `{banco}-{ambiente}-{YYYYMMDD_HHMMSS}.sql.gz`
+
+---
+
+## 🔄 Como Restaurar Backup
+
+### Download do arquivo
+
+#### Via gsutil (CLI)
+```bash
+# Listar backups disponíveis
+gsutil ls gs://dbjztech/mailjztech_prod/prod/2026/01/
+
+# Download do arquivo
+gsutil cp gs://dbjztech/mailjztech_prod/prod/2026/01/27/mailjztech-prod-20260127_030000.sql.gz ./
+```
+
+#### Via Console GCP
+1. Acesse: https://console.cloud.google.com/storage/browser
+2. Navegue até o bucket e pasta
+3. Clique no arquivo e faça download
+
+### Restauração MySQL
+
+#### Passo 1: Descompactar
+```bash
+# Descompactar arquivo
+gunzip mailjztech-prod-20260127_030000.sql.gz
+
+# Ou descompactar mantendo o .gz original
+gunzip -k mailjztech-prod-20260127_030000.sql.gz
+```
+
+#### Passo 2: Verificar conteúdo (opcional)
+```bash
+# Ver primeiras 50 linhas (confirmar que tem CREATE TABLE e INSERT)
+head -50 mailjztech-prod-20260127_030000.sql
+
+# Contar quantos INSERTs existem
+grep -c "INSERT INTO" mailjztech-prod-20260127_030000.sql
+```
+
+#### Passo 3: Restaurar
+
+**ATENÇÃO**: O restore **SUBSTITUI** todos os dados existentes no banco!
+
+```bash
+# Restaurar em banco existente (substitui dados)
+mysql -u root -p mailjztech < mailjztech-prod-20260127_030000.sql
+
+# Restaurar em novo banco
+mysql -u root -p -e "CREATE DATABASE mailjztech_restore;"
+mysql -u root -p mailjztech_restore < mailjztech-prod-20260127_030000.sql
+
+# Com host/porta específicos
+mysql -u root -p -h localhost -P 3306 mailjztech < mailjztech-prod-20260127_030000.sql
+```
+
+#### Passo 4: Verificar restauração
+```bash
+# Conectar no banco e verificar tabelas
+mysql -u root -p mailjztech -e "SHOW TABLES;"
+
+# Contar registros em uma tabela importante
+mysql -u root -p mailjztech -e "SELECT COUNT(*) FROM emails_enviados;"
+```
+
+### Verificação de Integridade
+
+O backup inclui checksum SHA256 no log. Para verificar:
+
+```bash
+# Calcular checksum do arquivo baixado
+sha256sum mailjztech-prod-20260127_030000.sql.gz
+
+# Comparar com o checksum no banco
+# SELECT checksum_sha256 FROM backup_execucao_log WHERE gcs_objeto LIKE '%20260127_030000%';
 ```
 
 ---
@@ -317,6 +397,7 @@ bucket: dbjztech
 2. **Autenticação**: Todas as rotas exigem autenticação (sessão ou TOKEN_JV)
 3. **Sanitização**: Escapamento de comandos shell no mysqldump
 4. **Permissões**: Apenas usuários autenticados podem gerenciar backups
+5. **Validação de Conteúdo**: O backup verifica se contém `CREATE TABLE` e `INSERT`
 
 ### Boas Práticas
 
@@ -324,6 +405,98 @@ bucket: dbjztech
 - Mantenha o arquivo `bkp.json` (credenciais GCS) fora do controle de versão
 - Revise logs regularmente para identificar falhas
 - Configure alertas por e-mail para backups com erro
+
+---
+
+## ⚙️ Variáveis de Ambiente
+
+Configure no arquivo `.env`:
+
+```env
+# ============================================
+# BANCO DE DADOS
+# ============================================
+DB_DRIVER=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_DATABASE=mailjztech
+DB_USER=usuario_app
+DB_PASS=senha_app
+
+# ============================================
+# CREDENCIAIS PARA DUMP (usuário com acesso a todos os bancos)
+# ============================================
+USER_MASTER_DB=root
+PASS_MASTER_DB=senha_master
+
+# ============================================
+# TOKEN DE AUTENTICAÇÃO (para cron e API)
+# ============================================
+TOKEN_JV=sua_chave_secreta_muito_longa
+
+# ============================================
+# URL DO FRONTEND (para links em emails)
+# ============================================
+FRONT_URL=https://seu-dominio.com
+```
+
+### Credenciais Google Cloud Storage
+
+O arquivo `src/handlers/service/bkp.json` deve conter:
+
+```json
+{
+  "type": "service_account",
+  "project_id": "seu-projeto-gcp",
+  "private_key_id": "...",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+  "client_email": "backup-service@seu-projeto.iam.gserviceaccount.com",
+  "client_id": "...",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token"
+}
+```
+
+**Permissões necessárias** na Service Account:
+- `Storage Object Admin` (roles/storage.objectAdmin)
+- Escopo limitado ao bucket de backup
+
+---
+
+## 🗑️ Retenção e Lifecycle Rules
+
+### Retenção via Script (Padrão: 7 dias)
+
+O sistema remove automaticamente backups mais antigos que a retenção configurada:
+- Após cada backup bem-sucedido
+- Lista objetos no bucket e remove os antigos
+- Também limpa logs no banco de dados
+
+### Lifecycle Rules no GCS (Recomendado como backup)
+
+Configure no Console GCP ou via gsutil:
+
+```bash
+# Criar arquivo de lifecycle
+cat > lifecycle.json << 'EOF'
+{
+  "rule": [
+    {
+      "action": {"type": "Delete"},
+      "condition": {
+        "age": 7,
+        "matchesPrefix": ["mailjztech_prod/"]
+      }
+    }
+  ]
+}
+EOF
+
+# Aplicar ao bucket
+gsutil lifecycle set lifecycle.json gs://dbjztech
+```
+
+**Vantagem**: Mesmo que o script falhe, o GCS remove arquivos antigos automaticamente.
 
 ---
 
