@@ -46,15 +46,15 @@ class BackupService
         // Localizar binário e montar comando com --result-file (captura erros em $output)
         $mysqldump = self::encontrarMysqldump();
 
-        // Preferir passar senha via variável de ambiente para evitar problemas com caracteres especiais
-        // Flags escolhidas:
-        // - single-transaction: consistência sem bloquear
-        // - routines, triggers, events: inclui SPs, funções, triggers e eventos
-        // - default-character-set: força utf8mb4
-        // - add-drop-database/add-drop-table: facilita restore limpo
-        // - set-gtid-purged=OFF: compatível com MariaDB/MySQL sem erro
+        // Dump completo: tabelas + dados + triggers + events
+        // --skip-routines: pula procedures/funções (exige privilégio ROUTINE que o hosting não dá)
+        // --triggers: inclui triggers (habilitado por padrão, mas explícito por clareza)
+        // --events: inclui scheduled events
+        // --single-transaction: consistência sem bloquear tabelas
+        // --no-tablespaces: evita erro de PROCESS privilege
+        // --add-drop-table: facilita restore limpo
         $baseArgs = sprintf(
-            '%s --user=%s --host=%s --port=%s --single-transaction --routines --triggers --events --default-character-set=utf8mb4 --add-drop-database --add-drop-table --set-gtid-purged=OFF %s --result-file=%s 2>&1',
+            '%s --user=%s --host=%s --port=%s --single-transaction --skip-routines --triggers --events --no-tablespaces --default-character-set=utf8mb4 --add-drop-table %s --result-file=%s 2>&1',
             $mysqldump,
             escapeshellarg($usuario),
             escapeshellarg($host),
@@ -64,7 +64,6 @@ class BackupService
         );
         $comando = sprintf('MYSQL_PWD=%s %s', escapeshellarg($senha), $baseArgs);
 
-        // Executar comando
         // Log (senha mascarada)
         \core\Controller::log('[backup] executando: ' . str_replace($senha, '***', $comando));
 
@@ -73,24 +72,43 @@ class BackupService
         if ($returnCode !== 0) {
             $erro = trim(implode("\n", $output));
 
-            // Fallback: tenta com parâmetro --password=
+            // Fallback 1: sem --events (caso não tenha privilégio EVENT)
             $comandoFallback = sprintf(
-                '%s --user=%s --password=%s --host=%s --port=%s --single-transaction --skip-routines --skip-triggers --events --default-character-set=utf8mb4 --add-drop-database --add-drop-table --set-gtid-purged=OFF %s --result-file=%s 2>&1',
+                '%s --user=%s --host=%s --port=%s --single-transaction --skip-routines --triggers --skip-events --no-tablespaces --default-character-set=utf8mb4 --add-drop-table %s --result-file=%s 2>&1',
                 $mysqldump,
                 escapeshellarg($usuario),
-                escapeshellarg($senha),
                 escapeshellarg($host),
                 escapeshellarg($port),
                 escapeshellarg($nomeBanco),
                 escapeshellarg($arquivoSql)
             );
-            \core\Controller::log('[backup] fallback: ' . str_replace($senha, '***', $comandoFallback));
+            $comando2 = sprintf('MYSQL_PWD=%s %s', escapeshellarg($senha), $comandoFallback);
+            \core\Controller::log('[backup] fallback sem events: ' . str_replace($senha, '***', $comando2));
             $output = [];
-            exec($comandoFallback, $output, $returnCode);
-            $erro2 = trim(implode("\n", $output));
+            exec($comando2, $output, $returnCode);
 
             if ($returnCode !== 0) {
-                throw new Exception("Erro ao executar mysqldump: " . ($erro2 ?: $erro ?: 'retcode ' . $returnCode));
+                $erro2 = trim(implode("\n", $output));
+
+                // Fallback 2: mínimo - sem triggers também, via --password= (caso MYSQL_PWD não funcione)
+                $comandoMin = sprintf(
+                    '%s --user=%s --password=%s --host=%s --port=%s --single-transaction --skip-routines --skip-triggers --skip-events --no-tablespaces --default-character-set=utf8mb4 --add-drop-table --skip-lock-tables %s --result-file=%s 2>&1',
+                    $mysqldump,
+                    escapeshellarg($usuario),
+                    escapeshellarg($senha),
+                    escapeshellarg($host),
+                    escapeshellarg($port),
+                    escapeshellarg($nomeBanco),
+                    escapeshellarg($arquivoSql)
+                );
+                \core\Controller::log('[backup] fallback minimo: ' . str_replace($senha, '***', $comandoMin));
+                $output = [];
+                exec($comandoMin, $output, $returnCode);
+                $erro3 = trim(implode("\n", $output));
+
+                if ($returnCode !== 0) {
+                    throw new Exception("Erro ao executar mysqldump: " . ($erro3 ?: $erro2 ?: $erro ?: 'retcode ' . $returnCode));
+                }
             }
         }
 

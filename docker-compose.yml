@@ -26,8 +26,10 @@ services:
           composer install --no-interaction --optimize-autoloader;
         fi &&
         echo '✅ MailJZTech API rodando em http://localhost:8050' &&
-        apache2-foreground
+        /usr/local/bin/entrypoint.sh
       "
+    mem_limit: 384m
+    cpus: 1.5
     restart: unless-stopped
 
 # ✅ Define a rede externa (criada pelo docker-infra)
