@@ -10,11 +10,16 @@ use core\Database;
 use Exception;
 
 /**
- * Handler para orquestrar a execução de backups de bancos de dados.
- * Gerencia o fluxo completo: dump, upload, logs e limpeza.
+ * Handler para orquestrar a execução de backups COMPLETOS (schema + dados).
+ * Gerencia o fluxo: dump, validação, compressão, upload, logs e limpeza.
+ * 
+ * Retenção padrão: 7 dias (configurável por banco)
  */
 class BackupExecucao
 {
+    /** @var int Retenção padrão em dias */
+    private const RETENCAO_PADRAO = 7;
+
     /**
      * Executa backup de todos os bancos ativos.
      *
@@ -25,6 +30,9 @@ class BackupExecucao
         $configuracoes = BackupConfig::listarTodos(true); // Apenas ativos
         $resultados = [];
 
+        \core\Controller::log("=== INÍCIO BACKUP AUTOMÁTICO ===");
+        \core\Controller::log("Total de bancos ativos: " . count($configuracoes));
+
         foreach ($configuracoes as $config) {
             try {
                 $resultado = self::executarPorId($config['idbackup_banco_config']);
@@ -33,20 +41,33 @@ class BackupExecucao
                     'sucesso' => true,
                     'detalhes' => $resultado
                 ];
+                \core\Controller::log("✓ Backup OK: {$config['nome_banco']}");
             } catch (Exception $e) {
                 $resultados[] = [
                     'banco' => $config['nome_banco'],
                     'sucesso' => false,
                     'erro' => $e->getMessage()
                 ];
+                \core\Controller::log("✗ Backup ERRO: {$config['nome_banco']} - " . $e->getMessage());
             }
         }
 
+        \core\Controller::log("=== FIM BACKUP AUTOMÁTICO ===");
         return $resultados;
     }
 
     /**
-     * Executa backup de um banco específico.
+     * Executa backup COMPLETO de um banco específico.
+     * Fluxo:
+     * 1. Criar log inicial (status: running)
+     * 2. Gerar dump MySQL (schema + dados)
+     * 3. Validar conteúdo do backup
+     * 4. Comprimir arquivo (.sql.gz)
+     * 5. Calcular checksum SHA256
+     * 6. Upload para GCS com naming padrão
+     * 7. Atualizar log (status: success)
+     * 8. Limpar arquivos temporários
+     * 9. Executar limpeza de backups antigos (retenção)
      *
      * @param int $idConfig
      * @return array Informações do backup realizado
@@ -54,8 +75,18 @@ class BackupExecucao
      */
     public static function executarPorId(int $idConfig): array
     {
+        $inicio = microtime(true);
+        
         // Buscar configuração
         $config = BackupConfig::obterPorId($idConfig);
+        $nomeBanco = $config['nome_banco'];
+        $retencaoDias = $config['retencao_dias'] ?? self::RETENCAO_PADRAO;
+
+        \core\Controller::log("========================================");
+        \core\Controller::log("[{$nomeBanco}] Iniciando backup completo...");
+        \core\Controller::log("[{$nomeBanco}] Bucket: {$config['bucket_nome']}");
+        \core\Controller::log("[{$nomeBanco}] Retenção: {$retencaoDias} dias");
+        \core\Controller::log("========================================");
 
         // Criar log inicial
         $idLog = Backup_execucao_log::insert([
@@ -67,8 +98,8 @@ class BackupExecucao
         $arquivoLocal = null;
 
         try {
-            // 1. Gerar dump MySQL
-            $arquivoSql = BackupService::gerarDumpMySQL($config['nome_banco']);
+            // 1. Gerar dump MySQL COMPLETO (schema + dados)
+            $arquivoSql = BackupService::gerarDumpMySQL($nomeBanco);
             
             // 2. Comprimir arquivo
             $arquivoGz = BackupService::comprimirArquivo($arquivoSql);
@@ -77,22 +108,28 @@ class BackupExecucao
             // 3. Calcular checksum
             $checksum = BackupService::calcularChecksum($arquivoGz);
 
-            // 4. Preparar caminho no GCS simplificado (formato: pasta_base/backup-YYYYMMDD-HHMMSS.sql.gz)
-            $timestamp = date('Ymd_His');
-            $nomeArquivo = "backup-{$timestamp}.sql.gz";
-            $objetoGCS = "{$config['pasta_base']}/{$nomeArquivo}";
+            // 4. Obter tamanho do arquivo
+            $tamanhoBytes = filesize($arquivoGz);
 
-            // 5. Upload para GCS
+            // 5. Preparar caminho no GCS com naming padrão hierárquico
+            // Formato: pasta_base/ambiente/YYYY/MM/DD/dbname-ambiente-YYYYMMDD_HHMMSS.sql.gz
+            $nomeArquivo = basename($arquivoGz);
+            $objetoGCS = BackupService::gerarCaminhoGCS(
+                $config['pasta_base'],
+                $nomeBanco,
+                $nomeArquivo
+            );
+
+            // 6. Upload para GCS
             $uploadInfo = BackupService::uploadParaGCS(
                 $arquivoGz,
                 $config['bucket_nome'],
                 $objetoGCS
             );
 
-            // 6. Obter tamanho do arquivo
-            $tamanhoBytes = filesize($arquivoGz);
-
             // 7. Finalizar log com sucesso
+            $duracao = round(microtime(true) - $inicio, 2);
+            
             Backup_execucao_log::finalizarLog($idLog, 'success', [
                 'finalizado_em' => date('Y-m-d H:i:s'),
                 'gcs_objeto' => $objetoGCS,
@@ -106,15 +143,25 @@ class BackupExecucao
             // 9. Limpar arquivos temporários
             BackupService::limparArquivosTemp($arquivoLocal);
 
-            // 10. Executar limpeza de backups antigos
-            self::limparBackupsAntigos($idConfig);
+            // 10. Executar limpeza de backups antigos (somente se upload OK)
+            $limpeza = self::limparBackupsAntigos($idConfig);
+
+            $tamanhoMB = round($tamanhoBytes / 1024 / 1024, 2);
+            \core\Controller::log("[{$nomeBanco}] ✓ Backup concluído com sucesso!");
+            \core\Controller::log("[{$nomeBanco}] Duração total: {$duracao}s");
+            \core\Controller::log("[{$nomeBanco}] Tamanho: {$tamanhoMB} MB");
+            \core\Controller::log("[{$nomeBanco}] Objeto GCS: {$objetoGCS}");
+            \core\Controller::log("========================================");
 
             return [
                 'idlog' => $idLog,
                 'gcs_objeto' => $objetoGCS,
                 'tamanho_bytes' => $tamanhoBytes,
+                'tamanho_mb' => $tamanhoMB,
                 'checksum' => $checksum,
-                'bucket' => $config['bucket_nome']
+                'bucket' => $config['bucket_nome'],
+                'duracao_segundos' => $duracao,
+                'limpeza' => $limpeza
             ];
 
         } catch (Exception $e) {
@@ -129,6 +176,10 @@ class BackupExecucao
                 BackupService::limparArquivosTemp($arquivoLocal);
             }
 
+            \core\Controller::log("[{$nomeBanco}] ✗ ERRO: " . $e->getMessage());
+            \core\Controller::log("========================================");
+
+            // NÃO executar limpeza se o backup falhou
             throw $e;
         }
     }
@@ -203,6 +254,7 @@ class BackupExecucao
 
     /**
      * Remove logs antigos e arquivos do GCS baseado na retenção configurada.
+     * RETENÇÃO PADRÃO: 7 dias
      *
      * @param int $idConfig
      * @return array Informações da limpeza
@@ -211,6 +263,9 @@ class BackupExecucao
     public static function limparBackupsAntigos(int $idConfig): array
     {
         $config = BackupConfig::obterPorId($idConfig);
+        $retencaoDias = $config['retencao_dias'] ?? self::RETENCAO_PADRAO;
+
+        \core\Controller::log("[{$config['nome_banco']}] Executando limpeza (retenção: {$retencaoDias} dias)...");
 
         // Buscar logs existentes para verificar quais arquivos remover do GCS
         $logsAntigos = Backup_execucao_log::select()
@@ -219,23 +274,26 @@ class BackupExecucao
             ->orderBy('iniciado_em', 'DESC')
             ->get();
 
-        // Remover arquivos antigos do GCS
+        // Remover arquivos antigos do GCS (retenção de 7 dias por padrão)
         $arquivosRemovidos = BackupService::limparBackupsAntigos(
             $config['bucket_nome'],
             $config['pasta_base'],
-            $config['retencao_dias'],
+            $retencaoDias,
             $logsAntigos
         );
 
         // Remover logs antigos do banco de dados
         $logsRemovidos = Backup_execucao_log::limparAntigos(
             $idConfig,
-            $config['retencao_dias']
+            $retencaoDias
         );
+
+        \core\Controller::log("[{$config['nome_banco']}] Limpeza concluída: {$arquivosRemovidos} arquivos GCS, {$logsRemovidos} logs DB");
 
         return [
             'arquivos_gcs_removidos' => $arquivosRemovidos,
-            'logs_db_removidos' => $logsRemovidos
+            'logs_db_removidos' => $logsRemovidos,
+            'retencao_dias' => $retencaoDias
         ];
     }
 }
