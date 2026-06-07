@@ -125,18 +125,10 @@ class EmailService
                 $smtpLog .= $str . "\n";
             };
 
-            // Configuração do servidor SMTP
-            $mail->isSMTP();
+            // Transporte: Gmail API (Google Workspace, domain-wide delegation).
+            // PHPMailer e usado SO p/ montar o MIME (composicao); o envio e via Gmail API (sem SMTP).
             $mail->CharSet   = 'UTF-8';
             $mail->Encoding  = 'base64'; // Melhor para HTML complexo
-            $mail->Host      = Config::SMTP_HOST;
-            $mail->SMTPAuth  = true;
-            $mail->Username  = Config::EMAIL_API;
-            $mail->Password  = Config::SENHA_EMAIL_API;
-            $mail->SMTPSecure= PHPMailer::ENCRYPTION_SMTPS;
-            $mail->Port      = Config::SMTP_PORT;
-            $mail->Timeout   = 30; // Timeout de conexão
-            $mail->SMTPKeepAlive = false;
 
             // Configuração do remetente - sempre contato@jztech.com.br
             $mail->setFrom(Config::EMAIL_API, $nomeRemetente);
@@ -297,57 +289,38 @@ class EmailService
             $debugLog[] = "Tamanho estimado: " . number_format($totalSize) . " bytes";
 
             // ========================================
-            // 3. ENVIO COM CAPTURA DE RESPOSTA SMTP
+            // 3. ENVIO VIA GMAIL API (Workspace + domain-wide delegation)
             // ========================================
-            
-            $sendResult = $mail->send();
+            // PHPMailer monta o MIME; enviamos pelo Gmail API impersonando contato@jztech.com.br.
+            // Credencial vem do Workload Identity (a SA do pod) — sem chave em arquivo.
+            $mail->preSend();
+            $mimeMessage = $mail->getSentMIMEMessage();
+
+            $client = new \Google\Client();
+            $client->useApplicationDefaultCredentials();          // Workload Identity -> service account
+            $client->setScopes([\Google\Service\Gmail::GMAIL_SEND]);
+            $client->setSubject(Config::EMAIL_API);               // impersona o remetente (contato@jztech.com.br)
+            $gmailService = new \Google\Service\Gmail($client);
+
+            $gmailMsg = new \Google\Service\Gmail\Message();
+            $gmailMsg->setRaw(rtrim(strtr(base64_encode($mimeMessage), '+/', '-_'), '='));
+            $sent = $gmailService->users_messages->send('me', $gmailMsg);
+
             $endTime = microtime(true);
             $duration = round(($endTime - $startTime) * 1000, 2);
-            
-            // Extrair código SMTP da resposta
-            $smtpCode = self::extractSmtpCode($smtpLog);
-            $debugLog[] = "Código SMTP: {$smtpCode}";
+            $debugLog[] = "Gmail API message ID: " . $sent->getId();
             $debugLog[] = "Tempo de envio: {$duration}ms";
-            
-            // Verificar se foi realmente aceito
-            if ($sendResult && in_array((int)$smtpCode, self::SMTP_SUCCESS_CODES)) {
-                return [
-                    'success' => true,
-                    'status' => 'aceito', // Aceito pelo servidor SMTP
-                    'message' => 'E-mail aceito pelo servidor SMTP',
-                    'smtp_code' => $smtpCode,
-                    'smtp_response' => self::extractLastSmtpResponse($smtpLog),
-                    'size_bytes' => (int)$totalSize,
-                    'duration_ms' => $duration,
-                    'service' => 'phpmailer',
-                    'debug_log' => $debugLog
-                ];
-            }
-            
-            // Enviou mas código não é de sucesso claro
-            if ($sendResult) {
-                return [
-                    'success' => true,
-                    'status' => 'enviado', // Marcamos como enviado, mas sem confirmação forte
-                    'message' => 'E-mail enviado (aguardando confirmação)',
-                    'smtp_code' => $smtpCode,
-                    'smtp_response' => self::extractLastSmtpResponse($smtpLog),
-                    'size_bytes' => (int)$totalSize,
-                    'duration_ms' => $duration,
-                    'service' => 'phpmailer',
-                    'debug_log' => $debugLog,
-                    'warning' => 'Código SMTP não confirmado como sucesso'
-                ];
-            }
-            
-            // Falha no envio
-            return self::buildErrorResponse(
-                self::getStatusFromSmtpCode($smtpCode),
-                'Falha no envio: ' . $mail->ErrorInfo,
-                $smtpCode,
-                $debugLog,
-                ['smtp_log' => $smtpLog]
-            );
+
+            return [
+                'success'      => true,
+                'status'       => 'enviado',
+                'message'      => 'E-mail enviado via Gmail API',
+                'gmail_message_id' => $sent->getId(),
+                'size_bytes'   => (int)$totalSize,
+                'duration_ms'  => $duration,
+                'service'      => 'gmail-api',
+                'debug_log'    => $debugLog
+            ];
 
         } catch (Exception $e) {
             $smtpCode = self::extractSmtpCode($smtpLog ?? '');
