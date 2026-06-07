@@ -1,0 +1,144 @@
+# ============================================================
+# MailJZTech — Deploy GKE (monolito MVC, api-only no Gateway)
+# Imagem: standard API (PHP-FPM+Nginx) + mariadb-client (backup) + Gmail API.
+# Banco: db-geral-jztech via cloud-sql-proxy sidecar. Dominio: api-mail.jztech.com.br
+# ============================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mailjztech
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mailjztech-api
+  namespace: mailjztech
+  labels:
+    app: mailjztech-api
+    app.kubernetes.io/name: mailjztech-api
+    app.kubernetes.io/part-of: mailjztech
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: mailjztech-api
+  template:
+    metadata:
+      labels:
+        app: mailjztech-api
+        app.kubernetes.io/name: mailjztech-api
+    spec:
+      serviceAccountName: mailjztech-api
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: api
+          image: southamerica-east1-docker.pkg.dev/jztech-490722/jztech-docker-prod/mailjztech-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: http
+              protocol: TCP
+          livenessProbe:
+            httpGet: { path: /nginx-health, port: 80 }
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: { path: /nginx-health, port: 80 }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 5
+          startupProbe:
+            httpGet: { path: /nginx-health, port: 80 }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+          resources:
+            requests: { cpu: 50m, memory: 192Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "nginx -s quit && sleep 5"]
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.2
+          args:
+            - "--structured-logs"
+            - "--health-check"
+            - "--http-address=0.0.0.0"
+            - "--http-port=9090"
+            - "--private-ip"
+            - "jztech-490722:southamerica-east1:db-geral-jztech"
+          ports:
+            - containerPort: 9090
+              name: proxy-health
+          securityContext:
+            runAsNonRoot: true
+          resources:
+            requests: { cpu: 20m, memory: 64Mi }
+            limits: { cpu: 200m, memory: 128Mi }
+          livenessProbe:
+            httpGet: { path: /liveness, port: 9090 }
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            httpGet: { path: /readiness, port: 9090 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mailjztech-api
+  namespace: mailjztech
+  annotations:
+    iam.gke.io/gcp-service-account: mailjztech-app-prod@jztech-490722.iam.gserviceaccount.com
+  labels:
+    app.kubernetes.io/part-of: mailjztech
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailjztech-api
+  namespace: mailjztech
+  labels:
+    app: mailjztech-api
+    app.kubernetes.io/part-of: mailjztech
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  selector:
+    app: mailjztech-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mailjztech-api
+  namespace: mailjztech
+spec:
+  parentRefs:
+    - name: jztech-gateway
+      namespace: gateway-infra
+      sectionName: https
+  hostnames: ["api-mail.jztech.com.br"]
+  rules:
+    - backendRefs:
+        - name: mailjztech-api
+          port: 80

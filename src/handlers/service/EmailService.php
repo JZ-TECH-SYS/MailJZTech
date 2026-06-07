@@ -296,10 +296,12 @@ class EmailService
             $mail->preSend();
             $mimeMessage = $mail->getSentMIMEMessage();
 
+            // Access token via Workload Identity + domain-wide delegation (SEM chave em arquivo).
+            // Impersona um USUARIO REAL do Workspace (GMAIL_IMPERSONATE, ex: joao@jztech.com.br);
+            // o From continua EMAIL_API (contato@), que precisa ser um alias/send-as desse usuario.
+            // Ver getGmailAccessToken(): metadata -> IAM signJwt -> OAuth jwt-bearer.
             $client = new \Google\Client();
-            $client->useApplicationDefaultCredentials();          // Workload Identity -> service account
-            $client->setScopes([\Google\Service\Gmail::GMAIL_SEND]);
-            $client->setSubject(Config::EMAIL_API);               // impersona o remetente (contato@jztech.com.br)
+            $client->setAccessToken(['access_token' => self::getGmailAccessToken(self::impersonationUser())]);
             $gmailService = new \Google\Service\Gmail($client);
 
             $gmailMsg = new \Google\Service\Gmail\Message();
@@ -341,7 +343,89 @@ class EmailService
             );
         }
     }
-    
+
+    /** @var array<string,array{token:string,exp:int}> cache de access_token por subject */
+    private static $gmailTokenCache = [];
+
+    /**
+     * Usuario REAL do Workspace a ser impersonado na delegation (o `sub` do JWT).
+     * Domain-wide delegation NAO impersona alias/grupo — tem que ser conta primaria.
+     * Definido em .env (GMAIL_IMPERSONATE). Fallback: EMAIL_API.
+     */
+    private static function impersonationUser(): string
+    {
+        return (defined('GMAIL_IMPERSONATE') && \GMAIL_IMPERSONATE) ? \GMAIL_IMPERSONATE : Config::EMAIL_API;
+    }
+
+    /**
+     * Obtem um access_token do Gmail via Workload Identity + domain-wide delegation,
+     * SEM chave de service account em arquivo:
+     *   1) metadata server -> e-mail da SA do pod + token p/ a IAM Credentials API
+     *   2) IAM signJwt      -> assina um JWT (iss=SA, sub=usuario, scope=gmail.send)
+     *   3) OAuth token      -> troca o JWT assinado por um access_token (grant jwt-bearer)
+     *
+     * Requisitos no GCP/Workspace:
+     *   - a SA do pod com roles/iam.serviceAccountTokenCreator NELA MESMA (assinar o JWT)
+     *   - domain-wide delegation autorizada no Workspace (client_id da SA + escopo gmail.send)
+     *
+     * @param string $subject e-mail do usuario a impersonar (ex.: contato@jztech.com.br)
+     */
+    private static function getGmailAccessToken(string $subject): string
+    {
+        $now = time();
+        if (isset(self::$gmailTokenCache[$subject]) && self::$gmailTokenCache[$subject]['exp'] > $now + 60) {
+            return self::$gmailTokenCache[$subject]['token'];
+        }
+
+        $http     = new \GuzzleHttp\Client(['timeout' => 15]);
+        $metaBase = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/';
+        $metaHdr  = ['headers' => ['Metadata-Flavor' => 'Google']];
+
+        // 1) SA do pod (Workload Identity) + token p/ chamar a IAM Credentials API
+        $saEmail = trim((string) $http->get($metaBase . 'email', $metaHdr)->getBody());
+        $metaTok = json_decode((string) $http->get(
+            $metaBase . 'token?scopes=https://www.googleapis.com/auth/cloud-platform',
+            $metaHdr
+        )->getBody(), true)['access_token'] ?? null;
+        if (!$saEmail || !$metaTok) {
+            throw new \RuntimeException('Workload Identity indisponivel (metadata server)');
+        }
+
+        // 2) assina o JWT (assertion) com a propria SA via signJwt
+        $claims = [
+            'iss'   => $saEmail,
+            'sub'   => $subject,
+            'scope' => \Google\Service\Gmail::GMAIL_SEND,
+            'aud'   => 'https://oauth2.googleapis.com/token',
+            'iat'   => $now,
+            'exp'   => $now + 3600,
+        ];
+        $signed = json_decode((string) $http->post(
+            "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/{$saEmail}:signJwt",
+            ['headers' => ['Authorization' => 'Bearer ' . $metaTok], 'json' => ['payload' => json_encode($claims)]]
+        )->getBody(), true)['signedJwt'] ?? null;
+        if (!$signed) {
+            throw new \RuntimeException('Falha no signJwt — confira roles/iam.serviceAccountTokenCreator na SA');
+        }
+
+        // 3) troca a assertion por um access_token (delegation aplicada no Workspace)
+        $tok = json_decode((string) $http->post('https://oauth2.googleapis.com/token', [
+            'form_params' => [
+                'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                'assertion'  => $signed,
+            ],
+        ])->getBody(), true);
+        if (empty($tok['access_token'])) {
+            throw new \RuntimeException('Falha ao obter access_token do Gmail: ' . json_encode($tok));
+        }
+
+        self::$gmailTokenCache[$subject] = [
+            'token' => $tok['access_token'],
+            'exp'   => $now + (int) ($tok['expires_in'] ?? 3600),
+        ];
+        return $tok['access_token'];
+    }
+
     /**
      * Valida um endereço de e-mail
      */
